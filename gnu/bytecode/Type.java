@@ -4,59 +4,91 @@
 package gnu.bytecode;
 import java.util.*;
 import gnu.kawa.util.AbstractWeakHashTable;
+import java.util.jar.*;
+import java.util.zip.*;
+import java.io.*;
 
 /** An abstract type as used by both gnu.bytecode and gnu.expr. */
 
 public abstract class Type
 /* #ifdef JAVA5 */
- implements java.lang.reflect.Type
 /* #endif */
 {
-  String signature;
-  String genericSignature;
-  // Fully-qualified name (in external format, i.e. using '.' to separate).
-  String this_name;
-  /**
-   * Nominal unpromoted size in bytes.
-   */
-  int size;
+	String signature;
+	String genericSignature;
+	// Fully-qualified name (in external format, i.e. using '.' to separate).
+	String this_name;
+	/**
+	* Nominal unpromoted size in bytes.
+	*/
+	int size;
 
-  ArrayType array_type;
+	ArrayType array_type;
+	
+	JarFile jarFile = null;
+	InputStream classInputStream = null;
 
-  protected Type () { }
+  public final InputStream getClassInputStream() { return classInputStream; }
+	
+	protected Type ()
+	{
+		try
+		{
+			if (jarFile == null)
+			{
+				String strFile = getClass().getProtectionDomain().getCodeSource().
+													getLocation().toString().substring(6);
+				jarFile = new JarFile(strFile);
+			}
+			String entryName = getClass().getName().replace('.','/')+".class";
+			ZipEntry entry = jarFile.getEntry(entryName);
+			if (entry != null && classInputStream == null)
+			{
+				classInputStream = new BufferedInputStream(jarFile.getInputStream(entry));
+				System.out.println("classInputStream = " + classInputStream);
+			}
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
 
-  /** Return Java-level implementation type.
-   * The type used to implement types not natively understood by the JVM
-   * or the Java language.
-   * Usually, the identity function.  However, a language might handle
-   * union types or template types or type expressions calculated at
-   * run time.  In that case return the type used at the Java level,
-   * and known at compile time.
-   */
-  public Type getImplementationType()
-  {
-    return this;
+	/** Return Java-level implementation type.
+	* The type used to implement types not natively understood by the JVM
+	* or the Java language.
+	* Usually, the identity function.  However, a language might handle
+	* union types or template types or type expressions calculated at
+	* run time.  In that case return the type used at the Java level,
+	* and known at compile time.
+	*/
+	public Type getImplementationType()
+	{
+		return this;
+	}
+
+	/** Return JVM-level implementation type. */
+	public Type getRawType()
+	{
+		Type t = getImplementationType();
+		if (t != this)
+			t = t.getRawType();
+		return t;
   }
 
-    /** Return JVM-level implementation type. */
-    public Type getRawType() {
-	Type t = getImplementationType();
-	if (t != this)
-	    t = t.getRawType();
-	return t;
-    }
+  /** If this is a type alias, get the aliased type.
+   * This is semi-deprecated.
+   */
+  public Type getRealType()
+	{
+		return this;
+  }
 
-    /** If this is a type alias, get the aliased type.
-     * This is semi-deprecated.
-     */
-    public Type getRealType() {
-	return this;
-    }
-
-    public boolean isInterface() {
-        Type raw = getRawType();
-        return raw != this && raw.isInterface();
-    }
+  public boolean isInterface()
+	{
+		Type raw = getRawType();
+		return raw != this && raw.isInterface();
+  }
 
   public boolean isExisting()
   {
@@ -77,7 +109,10 @@ public abstract class Type
   {
     /* #ifdef JAVA5 */
     java.util.HashMap<String,Type> map = mapNameToType;
-    synchronized (map) { return map.get(name); }
+    synchronized (map)
+		{
+			return map.get(name);
+		}
     /* #else */
     // return (Type) mapNameToType.get(name);
     /* #endif */
@@ -96,22 +131,22 @@ public abstract class Type
     // java.util.Hashtable map = mapNameToType;
     /* #endif */
     synchronized (map)
-      {
-        Type type = (Type) map.get(name);
-        if (type == null)
-          {
-            if (name.endsWith("[]"))
-              type = ArrayType.make(name);
-            else
-              {
-                ClassType cl = new ClassType(name);
-                cl.setExisting(true);
-                type = cl;
-              }
-            map.put(name, type);
-          }
-        return type;
-      }
+		{
+			Type type = (Type) map.get(name);
+			if (type == null)
+			{
+				if (name.endsWith("[]"))
+					type = ArrayType.make(name);
+				else
+				{
+					ClassType cl = new ClassType(name);
+					cl.setExisting(true);
+					type = cl;
+				}
+				map.put(name, type);
+			}
+			return type;
+		}
   }
 
   /** Register that the Type for class is type. */
@@ -127,125 +162,137 @@ public abstract class Type
     /** Try to map java.lang.reflect.Type to gnu.bytecode.Type.
      * If we can't handle that, resolve the Class instead.
      */
-    public static Type make(Class reflectClass, java.lang.reflect.Type type) {
-	Type t = make(type);
-	return t != null ? t : make(reflectClass);
-    }
+	public static Type make(Class reflectClass, java.lang.reflect.Type type)
+	{
+		Type t = make(type);
+		return t != null ? t : make(reflectClass);
+	}
 
-    /** Resolve a java.lang.reflect.Type to gnu.bytecode.Type.
-     * Handles simple parameterized types, but does not handle type variables.
-     * @return a translated Type, or null for unhandled types.
-     */
-    static Type make(java.lang.reflect.Type type) {
-	if (type instanceof Class)
+	/** Resolve a java.lang.reflect.Type to gnu.bytecode.Type.
+	 * Handles simple parameterized types, but does not handle type variables.
+	 * @return a translated Type, or null for unhandled types.
+	 */
+	static Type make(java.lang.reflect.Type type)
+	{
+		if (type instanceof Class)
 	    return make((Class) type);
-	if (type instanceof java.lang.reflect.GenericArrayType)
+		if (type instanceof java.lang.reflect.GenericArrayType)
 	    return null;
-	if (type instanceof java.lang.reflect.ParameterizedType) {
+		if (type instanceof java.lang.reflect.ParameterizedType)
+		{
 	    java.lang.reflect.ParameterizedType ptype
-		= (java.lang.reflect.ParameterizedType) type;
+			= (java.lang.reflect.ParameterizedType) type;
 	    java.lang.reflect.Type typeArguments[]
-		= ptype.getActualTypeArguments();
+			= ptype.getActualTypeArguments();
 	    Type rt = Type.make(ptype.getRawType());
-	    if (rt instanceof ClassType) {
-		ClassType rawType = (ClassType) rt;
-		int nargs = typeArguments.length;
-		Type[] typeArgumentTypes = new Type[nargs];
-		char[] bounds = new char[nargs];
-		for (int i = 0;  i < nargs;  i++) {
-		    java.lang.reflect.Type ti = typeArguments[i];
-		    if (ti instanceof java.lang.reflect.WildcardType) {
-			java.lang.reflect.WildcardType wi =
-			    (java.lang.reflect.WildcardType) ti;
-			java.lang.reflect.Type[] lower = wi.getLowerBounds();
-			java.lang.reflect.Type[] upper = wi.getUpperBounds();
-			if (lower.length + upper.length != 1)
-			    return null;
-			else if (lower.length == 1) {
-			    bounds[i] = '-';
-			    ti = lower[0];
+			if (rt instanceof ClassType)
+			{
+				ClassType rawType = (ClassType) rt;
+				int nargs = typeArguments.length;
+				Type[] typeArgumentTypes = new Type[nargs];
+				char[] bounds = new char[nargs];
+				for (int i = 0;  i < nargs;  i++)
+				{
+					java.lang.reflect.Type ti = typeArguments[i];
+					if (ti instanceof java.lang.reflect.WildcardType)
+					{
+						java.lang.reflect.WildcardType wi =
+							(java.lang.reflect.WildcardType) ti;
+						java.lang.reflect.Type[] lower = wi.getLowerBounds();
+						java.lang.reflect.Type[] upper = wi.getUpperBounds();
+						if (lower.length + upper.length != 1)
+							return null;
+						else if (lower.length == 1)
+						{
+							bounds[i] = '-';
+							ti = lower[0];
+						}
+						else /* if (upper.length == 1) */
+						{
+							bounds[i] = '+';
+							ti = upper[0];
+						}
+					}
+					typeArgumentTypes[i] = Type.make(ti);
+				}
+				ParameterizedType ret = new ParameterizedType(rawType, typeArgumentTypes);
+				ret.setTypeArgumentBounds(bounds);
+				return ret;
 			}
-			else /* if (upper.length == 1) */ {
-			    bounds[i] = '+';
-			    ti = upper[0];
-			}
-		    }
-		    typeArgumentTypes[i] = Type.make(ti);
 		}
-		ParameterizedType ret = new ParameterizedType(rawType, typeArgumentTypes);
-		ret.setTypeArgumentBounds(bounds);
-		return ret;
-	    }
+		if (type instanceof java.lang.reflect.TypeVariable)
+		{
+			return TypeVariable.make((java.lang.reflect.TypeVariable) type);
+		}
+		return null;
 	}
-	if (type instanceof java.lang.reflect.TypeVariable) {
-	    return TypeVariable.make((java.lang.reflect.TypeVariable) type);
-	}
-	return null;
-    }
 
   public synchronized static Type make(Class reflectClass)
   {
     Type type;
     
     if (mapClassToType != null)
-      {
-	Type t = mapClassToType.get(reflectClass);
-	if (t != null)
-	  return t;
-      }
+		{
+			Type t = mapClassToType.get(reflectClass);
+			if (t != null)
+				return t;
+		}
     if (reflectClass.isArray())
       type = ArrayType.make(Type.make(reflectClass.getComponentType()));
     else if (reflectClass.isPrimitive())
       throw new Error("internal error - primitive type not found");
     else
-      {
-	String name = reflectClass.getName();
-        /* #ifdef JAVA5 */
-        java.util.HashMap<String,Type> map = mapNameToType;
-        /* #else */
-        // java.util.Hashtable map = mapNameToType;
-        /* #endif */
-        synchronized (map)
-          {
-            type = (Type) map.get(name);
-            if (type == null
-                || (type.reflectClass != reflectClass
-                    && type.reflectClass != null))
-              {
-                ClassType cl = new ClassType(name);
-                cl.setExisting(true);
-                type = cl;
-                mapNameToType.put(name, type);
-              }
-          }
-      }
+		{
+			String name = reflectClass.getName();
+			/* #ifdef JAVA5 */
+			java.util.HashMap<String,Type> map = mapNameToType;
+			/* #else */
+			// java.util.Hashtable map = mapNameToType;
+			/* #endif */
+      synchronized (map)
+			{
+				type = (Type) map.get(name);
+				if (type == null
+				|| (type.reflectClass != reflectClass && type.reflectClass != null))
+				{
+					ClassType cl = new ClassType(name);
+					cl.setExisting(true);
+					type = cl;
+					mapNameToType.put(name, type);
+				}
+			}
+		}
     registerTypeForClass(reflectClass, type);
     return type;
   }
 
-    public String getSignature() { return signature; }
-    protected void setSignature(String sig) { this.signature = sig; }
-    public String getGenericSignature() { return genericSignature; }
-    protected void setGenericSignature(String sig) { this.genericSignature = sig; }
-    public String getMaybeGenericSignature() {
-	String s = getGenericSignature();
-	return s != null ? s : getSignature();
-    }
+	public String getSignature() { return signature; }
+	protected void setSignature(String sig) { this.signature = sig; }
+	public String getGenericSignature() { return genericSignature; }
+	protected void setGenericSignature(String sig) { this.genericSignature = sig; }
+	
+	public String getMaybeGenericSignature()
+	{
+		String s = getGenericSignature();
+		return s != null ? s : getSignature();
+	}
 
-  Type (String nam, String sig) {
+  Type (String nam, String sig)
+	{
     this_name = nam;
     signature = sig;
   }
 
   public Type (Type type)
-  {
+	{
     this_name = type.this_name;
     signature = type.signature;
     size = type.size;
     reflectClass = type.reflectClass;
   }
 
-  public Type promote () {
+  public Type promote ()
+	{
     return size < 4 ? intType : this;
   }
 
@@ -259,17 +306,17 @@ public abstract class Type
   public static PrimType signatureToPrimitive(char sig)
   {
     switch(sig)
-      {
-      case 'B':  return Type.byteType;
-      case 'C':  return Type.charType;
-      case 'D':  return Type.doubleType;
-      case 'F':  return Type.floatType;
-      case 'S':  return Type.shortType;
-      case 'I':  return Type.intType;
-      case 'J':  return Type.longType;
-      case 'Z':  return Type.booleanType;
-      case 'V':  return Type.voidType;
-      }
+		{
+			case 'B':  return Type.byteType;
+			case 'C':  return Type.charType;
+			case 'D':  return Type.doubleType;
+			case 'F':  return Type.floatType;
+			case 'S':  return Type.shortType;
+			case 'I':  return Type.intType;
+			case 'J':  return Type.longType;
+			case 'Z':  return Type.booleanType;
+			case 'V':  return Type.voidType;
+		}
     return null;
   }
 
@@ -281,16 +328,16 @@ public abstract class Type
     char c = sig.charAt(off);
     Type type;
     if (len == 1)
-      {
-	type = signatureToPrimitive(c);
-	if (type != null)
-	  return type;
-      }
+		{
+			type = signatureToPrimitive(c);
+			if (type != null)
+				return type;
+		}
     if (c == '[')
-      {
-	type = signatureToType(sig, off+1, len-1);
-	return type == null ? null : ArrayType.make(type);
-      }
+		{
+			type = signatureToType(sig, off+1, len-1);
+			return type == null ? null : ArrayType.make(type);
+		}
     if (c == 'L' && len > 2 && sig.indexOf(';', off) == len-1+off)
       return ClassType.make(sig.substring(off+1,len-1+off).replace('/', '.'));
     return null;
@@ -310,16 +357,16 @@ public abstract class Type
     char c = sig.charAt(off);
     Type type;
     if (len == 1)
-      {
-	type = signatureToPrimitive(c);
-	if (type != null)
-	  out.print(type.getName());
-      }
+		{
+			type = signatureToPrimitive(c);
+			if (type != null)
+				out.print(type.getName());
+		}
     else if (c == '[')
-      {
-        printSignature(sig, off+1, len-1, out);
-        out.print("[]");
-      }
+		{
+			printSignature(sig, off+1, len-1, out);
+			out.print("[]");
+		}
     else if (c == 'L' && len > 2 && sig.indexOf(';', off) == len-1+off)
       out.print(sig.substring(off+1,len-1+off).replace('/', '.'));
     else
@@ -336,19 +383,19 @@ public abstract class Type
     char c = sig.charAt(pos);
     int arrays = 0;
     while (c == '[')
-      {
-	arrays++;
-	pos++;
-	c = sig.charAt(pos);
-      }
+		{
+			arrays++;
+			pos++;
+			c = sig.charAt(pos);
+		}
     if (signatureToPrimitive(c) != null)
       return arrays+1;
     if (c == 'L')
-      {
-	int end = sig.indexOf(';', pos);
-	if (end > 0)
-	  return arrays + end + 1 - pos;
-      }
+		{
+			int end = sig.indexOf(';', pos);
+			if (end > 0)
+				return arrays + end + 1 - pos;
+		}
     return -1;
   }
 
@@ -367,25 +414,25 @@ public abstract class Type
     char c = sig.charAt(0);
     Type type;
     if (len == 1)
-      {
-	type = signatureToPrimitive(c);
-	if (type != null)
-	  return type.getName();
-      }
+		{
+			type = signatureToPrimitive(c);
+			if (type != null)
+				return type.getName();
+		}
     if (c == '[')
-      {
-	int arrays = 1;
-	if (arrays < len && sig.charAt(arrays) == '[')
-	  arrays++;
-	sig = signatureToName(sig.substring(arrays));
-	if (sig == null)
-	  return null;
-	StringBuffer buf = new StringBuffer(50);
-	buf.append(sig);
-	while (--arrays >= 0)
-	  buf.append("[]");
-	return buf.toString();
-      }
+		{
+			int arrays = 1;
+			if (arrays < len && sig.charAt(arrays) == '[')
+				arrays++;
+			sig = signatureToName(sig.substring(arrays));
+			if (sig == null)
+				return null;
+			StringBuffer buf = new StringBuffer(50);
+			buf.append(sig);
+			while (--arrays >= 0)
+				buf.append("[]");
+			return buf.toString();
+		}
     if (c == 'L' && len > 2 && sig.indexOf(';') == len-1)
       return sig.substring(1,len-1).replace('/', '.');
     return null;
@@ -410,21 +457,21 @@ public abstract class Type
 	   && name.charAt(len-2) == '[')
       len -= 2;
     for (i = 0;  i < len; i++)
-      {
-	char ch = name.charAt(i);
-	if (ch == '.')
-	  {
-	    if (in_name)
-	      in_name = false;
-	    else
-	      return false;
-	  }
-	else if (in_name ? Character.isJavaIdentifierPart(ch)
-		 : Character.isJavaIdentifierStart(ch))
-	  in_name = true;
-	else
-	  return false;
-      }
+		{
+			char ch = name.charAt(i);
+			if (ch == '.')
+			{
+				if (in_name)
+					in_name = false;
+				else
+					return false;
+			}
+			else if (in_name ? Character.isJavaIdentifierPart(ch)
+					: Character.isJavaIdentifierStart(ch))
+				in_name = true;
+			else
+				return false;
+		}
     return i == len;
   }
 
@@ -440,14 +487,15 @@ public abstract class Type
     return comp == -1 || comp == 0;
   }
 
-    /** If this is the target type, is a given source type compatible?
-     * Return -1 if no; 1 if yes; 0 if need to check at run-time. */
-    public int isCompatibleWithValue(Type valueType) {
-        if (this == toStringType)
-            return 1;
-        int comp = compare(valueType);
-        return comp >= 0 ? 1 : comp == -3 ? -1 : 0;
-    }
+	/** If this is the target type, is a given source type compatible?
+	 * Return -1 if no; 1 if yes; 0 if need to check at run-time. */
+	public int isCompatibleWithValue(Type valueType)
+	{
+		if (this == toStringType)
+			return 1;
+		int comp = compare(valueType);
+		return comp >= 0 ? 1 : comp == -3 ? -1 : 0;
+	}
 
   /**
    * Computes the common supertype
@@ -471,30 +519,30 @@ public abstract class Type
     if (t1 == t2)
       return t1;
     if (t1 instanceof PrimType && t2 instanceof PrimType)
-      {
-        t1 = ((PrimType) t1).promotedType();
-        t2 = ((PrimType) t2).promotedType();
-        return t1 == t2 ? t1 : null;
-      }
+		{
+			t1 = ((PrimType) t1).promotedType();
+			t2 = ((PrimType) t2).promotedType();
+			return t1 == t2 ? t1 : null;
+		}
     if (t1.isSubtype(t2))
       return t2;
     else if (t2.isSubtype(t1))
       return t1;
     else
-      {
-       // the only chance left is that t1 and t2 are ClassTypes.
-       if (!(t1 instanceof ClassType && t2 instanceof ClassType))
-         return Type.objectType;
-       ClassType c1 = (ClassType) t1;
-       ClassType c2 = (ClassType) t2;
-       if (! c1.isInterface() && ! c2.isInterface())
-         {
-           ClassType s1 = c1.getSuperclass();
-           ClassType s2 = c2.getSuperclass();
-           if (s1 != null && s2 != null)
-             return lowestCommonSuperType(s1, s2);
-         }
-      }
+		{
+			// the only chance left is that t1 and t2 are ClassTypes.
+			if (!(t1 instanceof ClassType && t2 instanceof ClassType))
+				return Type.objectType;
+			ClassType c1 = (ClassType) t1;
+			ClassType c2 = (ClassType) t2;
+			if (! c1.isInterface() && ! c2.isInterface())
+			{
+				ClassType s1 = c1.getSuperclass();
+				ClassType s2 = c2.getSuperclass();
+				if (s1 != null && s2 != null)
+					return lowestCommonSuperType(s1, s2);
+			}
+		}
     return Type.objectType;
   }
 
@@ -533,10 +581,10 @@ public abstract class Type
     if (t1.length != t2.length)
       return false;
     for (int i = t1.length; --i >= 0; )
-      {
-	if (! t1[i].isSubtype(t2[i]))
-	  return false;
-      }
+		{
+			if (! t1[i].isSubtype(t2[i]))
+				return false;
+		}
     return true;
   }
 
@@ -613,20 +661,20 @@ public abstract class Type
     /* #else */
     // mapNameToType = new java.util.Hashtable();
     /* #endif */
-	mapNameToType.put("byte",    byteType);
-	mapNameToType.put("short",   shortType);
-	mapNameToType.put("int",     intType);
-	mapNameToType.put("long",    longType);
-	mapNameToType.put("float",   floatType);
-	mapNameToType.put("double",  doubleType);
-	mapNameToType.put("boolean", booleanType);
-	mapNameToType.put("char",    charType);
-	mapNameToType.put("void",    voidType);
+		mapNameToType.put("byte",    byteType);
+		mapNameToType.put("short",   shortType);
+		mapNameToType.put("int",     intType);
+		mapNameToType.put("long",    longType);
+		mapNameToType.put("float",   floatType);
+		mapNameToType.put("double",  doubleType);
+		mapNameToType.put("boolean", booleanType);
+		mapNameToType.put("char",    charType);
+		mapNameToType.put("void",    voidType);
   }
 
-    /** The return type of an expression that never returns, such as a throw. */
-    public static final Type neverReturnsType
-        = ClassType.make("gnu.bytecode.Type$NeverReturns");
+	/** The return type of an expression that never returns, such as a throw. */
+	public static final Type neverReturnsType
+		= ClassType.make("gnu.bytecode.Type$NeverReturns");
 
   /** The magic type of null. */
   public static final ObjectType nullType = new ObjectType("(type of null)");
@@ -710,10 +758,10 @@ public abstract class Type
     return name == null ? 0 : name.hashCode ();
   }
 
-    /** A marker class, used for {@code Type.neverReturnsType}. */
-    public static class NeverReturns {
-        private NeverReturns() { }
-    }
+	/** A marker class, used for {@code Type.neverReturnsType}. */
+	public static class NeverReturns {
+		private NeverReturns() { }
+	}
 
   static class ClassToTypeMap extends AbstractWeakHashTable<Class,Type>
   {

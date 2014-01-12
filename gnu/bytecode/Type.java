@@ -1,3 +1,4 @@
+// Copyright (c) 2013  Alain Gandon.
 // Copyright (c) 1997, 2000, 2003, 2004, 2006, 2009  Per M.A. Bothner.
 // This is free software;  for terms and warranty disclaimer see ./COPYING.
 
@@ -19,17 +20,39 @@ public abstract class Type
 	// Fully-qualified name (in external format, i.e. using '.' to separate).
 	String this_name;
 	/**
-	* Nominal unpromoted size in bytes.
-	*/
+	 * Nominal unpromoted size in bytes.
+	 */
 	int size;
 
 	ArrayType array_type;
 	
-	JarFile jarFile = null;
-	InputStream classInputStream = null;
+	private static JarFile jarFile = null;
 
-  public final InputStream getClassInputStream() { return classInputStream; }
+	private static java.util.HashMap<String,InputStream> mapClassNameToInputStream
+		= new java.util.HashMap<String,InputStream>();
 	
+  public static final InputStream getClassInputStream(String name) 
+	{
+			java.util.HashMap<String,InputStream> map = mapClassNameToInputStream;
+			synchronized (map)
+			{
+				return map.get(name);
+			}
+	}
+	
+  private final InputStream putClassInputStream(String name, InputStream value) 
+	{
+			java.util.HashMap<String,InputStream> map = mapClassNameToInputStream;
+			synchronized (map)
+			{
+				return map.put(name, value);
+			}
+	}
+
+	
+	/**
+	 * Class constructor
+	 */
 	protected Type ()
 	{
 		try
@@ -40,34 +63,43 @@ public abstract class Type
 													getLocation().toString().substring(6);
 				jarFile = new JarFile(strFile);
 			}
-			String entryName = getClass().getName().replace('.','/')+".class";
+			String name = getClass().getName();
+			String entryName = name.replace('.','/')+".class";
 			ZipEntry entry = jarFile.getEntry(entryName);
-			if (entry != null && classInputStream == null)
+			if (entry == null)
+				throw new RuntimeException("no such entry class : "+entryName);
+				
+			InputStream classInputStream = getClassInputStream(name);
+			if (classInputStream == null)
 			{
-				classInputStream = new BufferedInputStream(jarFile.getInputStream(entry));
-				System.out.println("classInputStream = " + classInputStream);
+				classInputStream = new DataInputStream(jarFile.getInputStream(entry));
+				putClassInputStream(name, classInputStream);
+				System.out.println("name = " + name + " classInputStream = " + classInputStream);
 			}
 		}
-		catch (Exception e)
+		catch (Exception ex)
 		{
-			e.printStackTrace();
+			throw new InternalError(ex.toString());
 		}
 	}
 
-	/** Return Java-level implementation type.
-	* The type used to implement types not natively understood by the JVM
-	* or the Java language.
-	* Usually, the identity function.  However, a language might handle
-	* union types or template types or type expressions calculated at
-	* run time.  In that case return the type used at the Java level,
-	* and known at compile time.
-	*/
+	/**
+	 * Return Java-level implementation type.
+ 	 * The type used to implement types not natively understood by the JVM
+	 * or the Java language.
+	 * Usually, the identity function.  However, a language might handle
+	 * union types or template types or type expressions calculated at
+	 * run time.  In that case return the type used at the Java level,
+	 * and known at compile time.
+	 */
 	public Type getImplementationType()
 	{
 		return this;
 	}
 
-	/** Return JVM-level implementation type. */
+	/**
+	 * Return JVM-level implementation type.
+	 */
 	public Type getRawType()
 	{
 		Type t = getImplementationType();
@@ -76,7 +108,8 @@ public abstract class Type
 		return t;
   }
 
-  /** If this is a type alias, get the aliased type.
+  /**
+	 * If this is a type alias, get the aliased type.
    * This is semi-deprecated.
    */
   public Type getRealType()
@@ -84,12 +117,18 @@ public abstract class Type
 		return this;
   }
 
+  /**
+	 * Predicate to check if it is an interface
+   */
   public boolean isInterface()
 	{
 		Type raw = getRawType();
 		return raw != this && raw.isInterface();
   }
 
+  /**
+	 * Predicate to check if it exists
+   */
   public boolean isExisting()
   {
     // Overridden in ObjectType.
@@ -105,6 +144,11 @@ public abstract class Type
   // static java.util.Hashtable mapNameToType;
   /* #endif */
 
+  /**
+	 * Find type in the map
+	 * @static
+	 * @param string name the name of class
+   */
   public static Type lookupType (String name)
   {
     /* #ifdef JAVA5 */
@@ -118,12 +162,15 @@ public abstract class Type
     /* #endif */
   }
 
-  /** Find an Type with the given name, or create a new one.
+  /**
+	 * Find an Type with the given name, or create a new one.
    * Use this for "library classes", where you need the field/method types,
    * but not one where you are about to generate code for.
+	 * @static
    * @param name the name of the class (e..g. "java.lang.String").
    */
   public static Type getType (String name)
+       throws IOException, ClassFormatError
   {
     /* #ifdef JAVA5 */
     java.util.HashMap<String,Type> map = mapNameToType;
@@ -139,7 +186,21 @@ public abstract class Type
 					type = ArrayType.make(name);
 				else
 				{
-					ClassType cl = new ClassType(name);
+					ClassType cl = null;
+					InputStream classInputStream = getClassInputStream(name);
+					if (classInputStream != null)
+					{
+						try
+						{
+System.out.println("classInputStream1 = " + classInputStream);
+							cl = ClassFileInput.readClassType(classInputStream);
+						}
+						catch (Exception ex)
+						{
+						}
+					}
+					if (cl == null)
+						cl = new ClassType(name);
 					cl.setExisting(true);
 					type = cl;
 				}
@@ -255,7 +316,21 @@ public abstract class Type
 				if (type == null
 				|| (type.reflectClass != reflectClass && type.reflectClass != null))
 				{
-					ClassType cl = new ClassType(name);
+					ClassType cl = null;
+					InputStream classInputStream = getClassInputStream(name);
+					if (classInputStream != null)
+					{
+						try
+						{
+System.out.println("classInputStream2 = " + classInputStream);
+							cl = ClassFileInput.readClassType(classInputStream);
+						}
+						catch (Exception ex)
+						{
+						}
+					}
+					if (cl == null)
+						cl = new ClassType(name);
 					cl.setExisting(true);
 					type = cl;
 					mapNameToType.put(name, type);

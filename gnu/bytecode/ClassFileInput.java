@@ -26,6 +26,7 @@ public class ClassFileInput extends DataInputStream
     this.ctype = ctype;
     if (!readHeader())
       throw new ClassFormatError("invalid magic number");
+		reset();
     ctype.constants = readConstants();
     readClassInfo();
     readFields();
@@ -48,7 +49,9 @@ public class ClassFileInput extends DataInputStream
   {
     int magic = readInt();
     if (magic != 0xcafebabe)
+		{
       return false;
+		}
     readFormatVersion();
     return true;
   }

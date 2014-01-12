@@ -24,22 +24,27 @@ public class ClassType extends ObjectType
   {
     return (short) (classfileFormatVersion >> 16);
   }
+	
   public short getClassfileMinorVersion ()
   {
     return (short) (classfileFormatVersion & 0xFFFF);
   }
+	
   public void setClassfileVersion (int major, int minor)
   {
     classfileFormatVersion = (major & 0xFFFF) * 0x10000 + (minor * 0xFFFF);
   }
+	
   public void setClassfileVersion (int code)
   {
     classfileFormatVersion = code;
   }
+	
   public int getClassfileVersion ()
   {
     return classfileFormatVersion;
   }
+	
   public void setClassfileVersionJava5 ()
   {
     setClassfileVersion(JDK_1_5_VERSION);
@@ -119,17 +124,21 @@ public class ClassType extends ObjectType
   public synchronized String getSimpleName ()
   {
     /* #ifdef JAVA5 */
-    if ((flags & EXISTING_CLASS) != 0 && getReflectClass() != null) {
-			try {
+    if ((flags & EXISTING_CLASS) != 0 && getReflectClass() != null)
+		{
+			try
+			{
 				return reflectClass.getSimpleName();
 			}
-			catch (Throwable ex) {
+			catch (Throwable ex)
+			{
 				/* ... fall thorugh ... */
 			}
 		}
     /* #endif */
     String name = getName();
-    if (enclosingMember instanceof ClassType) {
+    if (enclosingMember instanceof ClassType)
+		{
 			String enclosingName = ((ClassType) enclosingMember).getName();
 			int enclosingLength;
 			if (enclosingName != null
@@ -148,7 +157,8 @@ public class ClassType extends ObjectType
   {
     ClassType prev = null;
     ClassType entry = firstInnerClass;
-    while (entry != null) {
+    while (entry != null)
+		{
 			if (entry == member)
 				return;
 			prev = entry;
@@ -258,9 +268,9 @@ public class ClassType extends ObjectType
 
   public ClassType getOuterLinkType ()
   {
-    return ! hasOuterLink()
-		? null
-		: (ClassType) getDeclaredField("this$0").getType();
+    return (! hasOuterLink())
+			? null
+			: (ClassType) getDeclaredField("this$0").getType();
   }
 
   /** Note that this class needs an other link ("this$0") field.
@@ -396,9 +406,10 @@ public class ClassType extends ObjectType
 		TypeVariable[] params = typeParameters;
 		if (params == null
 		&& (flags & EXISTING_CLASS) != 0
-		&& getReflectClass() != null) {
+		&& getReflectClass() != null)
+		{
 				java.lang.reflect.TypeVariable[] rparams
-				= reflectClass.getTypeParameters();
+					= reflectClass.getTypeParameters();
 				int nparams = rparams.length;
 				params = new TypeVariable[nparams];
 				for (int i = 0;  i < nparams;  i++)
@@ -598,13 +609,15 @@ public class ClassType extends ObjectType
    * Add a new field to this class, and name the field.
    * @param name the name of the new field
    */
-  public Field addField (String name) {
+  public Field addField (String name)
+	{
     Field field = new Field (this);
     field.setName(name);
     return field;
   }
 
-  public final Field addField (String name, Type type) {
+  public final Field addField (String name, Type type)
+	{
     Field field = new Field (this);
     field.setName(name);
     field.setType(type);
@@ -657,19 +670,23 @@ public class ClassType extends ObjectType
     return methods;
   }
 
-  public final int getMethodCount() {
+  public final int getMethodCount()
+	{
     return methods_count;
   }
  
-  Method addMethod () {
+  Method addMethod ()
+	{
     return new Method (this, 0);
   }
 
-  public Method addMethod (String name) {
+  public Method addMethod (String name)
+	{
     return addMethod(name, 0);
   }
 
-  public Method addMethod (String name, int flags) {
+  public Method addMethod (String name, int flags)
+	{
     Method method = new Method (this, flags);
     method.setName(name);
     return method;
@@ -958,6 +975,7 @@ public class ClassType extends ObjectType
 		}
     return result;
   }
+	
   /** Get a method with matching name and number of arguments. */
   public Method getDeclaredMethod(String name, int argCount)
   {

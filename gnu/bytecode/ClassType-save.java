@@ -1,4 +1,4 @@
-// Copyright (c) 2014  Alain Gandon.
+// Copyright (c) 2013  Alain Gandon.
 // Copyright (c) 1997, 1998, 1999, 2001, 2002, 2004, 2005, 2008, 2009, 2011  Per M.A. Bothner.
 // This is free software;  for terms and warranty disclaimer see ./COPYING.
 
@@ -9,14 +9,6 @@ import java.util.*;
 public class ClassType extends ObjectType 
   implements AttrContainer, Externalizable, Member
 {
-  public ClassType () { }
-
-  public ClassType (String class_name)
-  {
-    super();
-    setName(class_name);
-  }
-	
   public static final int JDK_1_1_VERSION = 45 * 0x10000 + 3;
   public static final int JDK_1_2_VERSION = 46 * 0x10000 + 0;
   public static final int JDK_1_3_VERSION = 47 * 0x10000 + 0;
@@ -29,31 +21,49 @@ public class ClassType extends ObjectType
   // An old but generally valid default value.
   int classfileFormatVersion = JDK_1_1_VERSION;
 
+	/**
+	 *
+	 */
   public short getClassfileMajorVersion ()
   {
     return (short) (classfileFormatVersion >> 16);
   }
 	
+	/**
+	 *
+	 */
   public short getClassfileMinorVersion ()
   {
     return (short) (classfileFormatVersion & 0xFFFF);
   }
 	
+	/**
+	 *
+	 */
   public void setClassfileVersion (int major, int minor)
   {
     classfileFormatVersion = (major & 0xFFFF) * 0x10000 + (minor * 0xFFFF);
   }
-	
+
+	/**
+	 *
+	 */
   public void setClassfileVersion (int code)
   {
     classfileFormatVersion = code;
   }
-	
+
+	/**
+	 *
+	 */
   public int getClassfileVersion ()
   {
     return classfileFormatVersion;
   }
 	
+	/**
+	 *
+	 */
   public void setClassfileVersionJava5 ()
   {
     setClassfileVersion(JDK_1_5_VERSION);
@@ -92,24 +102,24 @@ public class ClassType extends ObjectType
   int access_flags;
 
   Attribute attributes;
-  public final Attribute getAttributes ()
-	{ return attributes; }
-  public final void setAttributes (Attribute attributes)
-	{ this.attributes = attributes; }
+  public final Attribute getAttributes () { return attributes; }
+  public final void setAttributes (Attribute attributes) { this.attributes = attributes; }
 
   public static final ClassType[] noClasses = { };
 
   boolean emitDebugInfo = true;
 
   ConstantPool constants;
-
   public final ConstantPool getConstants () { return constants; }
 
+	/**
+	 *
+	 */
   public final CpoolEntry getConstant(int i)
   {
     if (constants == null
-				|| constants.pool == null
-				|| i > constants.count)
+		|| constants.pool == null
+		|| i > constants.count)
       return null;
     return constants.pool[i];
   }
@@ -118,78 +128,92 @@ public class ClassType extends ObjectType
   public final synchronized int getModifiers()
   {
     if (access_flags == 0
-				&& (flags & EXISTING_CLASS) != 0
-				&& getReflectClass() != null)
-			{
-				access_flags = reflectClass.getModifiers();
-			}
+		&& (flags & EXISTING_CLASS) != 0
+		&& getReflectClass() != null)
+      access_flags = reflectClass.getModifiers();
     return access_flags;
   }
 
-  /** Set the modifiers (access flags) for this class. */
-  public final void setModifiers(int flags) { access_flags = flags; }
-  public final void addModifiers(int flags) { access_flags |= flags; }
-	
+	/**
+	 *
+	 */
   public final boolean getStaticFlag ()
 	{
     return (getModifiers() & Access.STATIC) != 0;
   }
 
+  /** Set the modifiers (access flags) for this class. */
+  public final void setModifiers(int flags) { access_flags = flags; }
+  public final void addModifiers(int flags) { access_flags |= flags; }
+
+	/**
+	 *
+	 */
   public synchronized String getSimpleName ()
   {
     /* #ifdef JAVA5 */
     if ((flags & EXISTING_CLASS) != 0 && getReflectClass() != null)
-      {
-        try
-          {
-            return reflectClass.getSimpleName();
-          }
-        catch (Throwable ex)
-          { /* ... fall thorugh ... */ }
-      }
+		{
+			try
+			{
+				return reflectClass.getSimpleName();
+			}
+			catch (Throwable ex)
+			{
+				/* ... fall thorugh ... */
+			}
+		}
     /* #endif */
     String name = getName();
     if (enclosingMember instanceof ClassType)
-      {
-        String enclosingName = ((ClassType) enclosingMember).getName();
-        int enclosingLength;
-        if (enclosingName != null && name.startsWith(enclosingName)
-            && name.length() > (enclosingLength = enclosingName.length()) + 1
-            && name.charAt(enclosingLength) == '$')
-          return name.substring(enclosingLength+1);
-      }
+		{
+			String enclosingName = ((ClassType) enclosingMember).getName();
+			int enclosingLength;
+			if (enclosingName != null
+			&& name.startsWith(enclosingName)
+			&& name.length() > (enclosingLength = enclosingName.length()) + 1
+			&& name.charAt(enclosingLength) == '$')
+         return name.substring(enclosingLength+1);
+		}
     int dot = name.lastIndexOf('.');
     if (dot > 0)
       name = name.substring(dot+1);
     return name;
   }
 
+	/**
+	 *
+	 */
   public void addMemberClass (ClassType member)
   {
     ClassType prev = null;
     ClassType entry = firstInnerClass;
     while (entry != null)
-      {
-        if (entry == member)
-          return;
-        prev = entry;
-        entry = entry.nextInnerClass;
-      }
+		{
+			if (entry == member)
+				return;
+			prev = entry;
+			entry = entry.nextInnerClass;
+		}
     if (prev == null)
       firstInnerClass = member;
     else
       prev.nextInnerClass = member;
   }
 
+	/**
+	 *
+	 */
   public ClassType getDeclaredClass (String simpleName)
   {
     addMemberClasses();
-    for (ClassType member = firstInnerClass;  member != null;
-         member = member.nextInnerClass)
-      {
-        if (simpleName.equals(member.getSimpleName()))
-          return member;
-      }
+    for (ClassType member = firstInnerClass;
+				member != null;
+				member = member.nextInnerClass)
+		{
+			if (simpleName.equals(member.getSimpleName()))
+				return member;
+		}
     return null;
   }
 
@@ -197,7 +221,6 @@ public class ClassType extends ObjectType
   ClassType nextInnerClass;
 
   Member enclosingMember;
-	
   public ClassType getDeclaringClass()
   {
     addEnclosingMember();
@@ -231,20 +254,20 @@ public class ClassType extends ObjectType
     if (dclas == null)
       return;
     if (! clas.isMemberClass())
-      {
-        java.lang.reflect.Method rmeth = clas.getEnclosingMethod();
-        if (rmeth != null)
-          {
-            enclosingMember = addMethod(rmeth);
-            return;
-          }
-        java.lang.reflect.Constructor rcons = clas.getEnclosingConstructor();
-        if (rcons != null)
-          {
-            enclosingMember = addMethod(rcons);
-            return;
-          }
-      }
+		{
+			java.lang.reflect.Method rmeth = clas.getEnclosingMethod();
+			if (rmeth != null)
+			{
+				enclosingMember = addMethod(rmeth);
+				return;
+			}
+			java.lang.reflect.Constructor rcons = clas.getEnclosingConstructor();
+			if (rcons != null)
+			{
+				enclosingMember = addMethod(rcons);
+				return;
+			}
+		}
     enclosingMember = (ClassType) Type.make(dclas);
     /* #else */
     // dclas = clas.getDeclaringClass();
@@ -262,13 +285,13 @@ public class ClassType extends ObjectType
     Class[] memberClasses = clas.getClasses();
     int numMembers = memberClasses.length;
     if (numMembers > 0)
-      {
-        for (int i = 0;  i < numMembers;  i++)
-          {
-            ClassType member = (ClassType) Type.make(memberClasses[i]);
-            addMemberClass(member);
-          }
-      }
+		{
+			for (int i = 0;  i < numMembers;  i++)
+			{
+				ClassType member = (ClassType) Type.make(memberClasses[i]);
+				addMemberClass(member);
+			}
+		}
   }
 
   public final boolean hasOuterLink ()
@@ -281,7 +304,7 @@ public class ClassType extends ObjectType
   {
     return (! hasOuterLink())
 			? null
-      : (ClassType) getDeclaredField("this$0").getType();
+			: (ClassType) getDeclaredField("this$0").getType();
   }
 
   /** Note that this class needs an other link ("this$0") field.
@@ -296,24 +319,24 @@ public class ClassType extends ObjectType
       throw new Error("setOuterLink called for existing class "+getName());
     Field field = getDeclaredField("this$0");
     if (field == null)
-      {
-        field = addField("this$0", outer);
-        flags |= HAS_OUTER_LINK;
-        for (Method meth = methods; meth != null;  meth = meth.getNext())
-          {
-            if ("<init>".equals(meth.getName()))
-              {
-                if (meth.code != null)
-                  throw new Error("setOuterLink called when "+meth+" has code");
-                Type[] arg_types = meth.arg_types;
-                Type[] new_types = new Type[arg_types.length+1];
-                System.arraycopy(arg_types, 0, new_types, 1, arg_types.length);
-                new_types[0] = outer;
-                meth.arg_types = new_types;
-                meth.signature = null;
-              }
-          }
-      }
+		{
+			field = addField("this$0", outer);
+			flags |= HAS_OUTER_LINK;
+			for (Method meth = methods; meth != null;  meth = meth.getNext())
+			{
+				if ("<init>".equals(meth.getName()))
+				{
+					if (meth.code != null)
+						throw new Error("setOuterLink called when "+meth+" has code");
+					Type[] arg_types = meth.arg_types;
+					Type[] new_types = new Type[arg_types.length+1];
+					System.arraycopy(arg_types, 0, new_types, 1, arg_types.length);
+					new_types[0] = outer;
+					meth.arg_types = new_types;
+					meth.signature = null;
+				}
+			}
+		}
     else if (! outer.equals(field.getType()))
       throw new Error("inconsistent setOuterLink call for "+getName());
     return field;
@@ -377,8 +400,7 @@ public class ClassType extends ObjectType
     setSignature(nameToSignature(name));
   }
 
-	public static String nameToSignature(String name)
-	{
+	public static String nameToSignature(String name) {
 			return "L"+name.replace('.', '/')+";";
 	}
 
@@ -398,11 +420,11 @@ public class ClassType extends ObjectType
   public void setSourceFile (String name)
   {
     if (sourceDbgExt != null)
-      {
-				sourceDbgExt.addFile(name);
-				if (sourceDbgExt.fileCount > 1)
-					return;
-      }
+		{
+			sourceDbgExt.addFile(name);
+			if (sourceDbgExt.fileCount > 1)
+				return;
+		}
 
     name = SourceFileAttr.fixSourceFile(name);
     int slash = name.lastIndexOf('/');
@@ -417,19 +439,19 @@ public class ClassType extends ObjectType
 	{
 		TypeVariable[] params = typeParameters;
 		if (params == null
-				&& (flags & EXISTING_CLASS) != 0
-				&& getReflectClass() != null)
-			{
+		&& (flags & EXISTING_CLASS) != 0
+		&& getReflectClass() != null)
+		{
 				java.lang.reflect.TypeVariable[] rparams
 					= reflectClass.getTypeParameters();
 				int nparams = rparams.length;
 				params = new TypeVariable[nparams];
 				for (int i = 0;  i < nparams;  i++)
-					{
-						params[i] = TypeVariable.make(rparams[i]);
-					}
+				{
+					params[i] = TypeVariable.make(rparams[i]);
+				}
 				typeParameters = params;
-			}
+		}
 		return params;
 	}
 
@@ -450,13 +472,13 @@ public class ClassType extends ObjectType
   public synchronized ClassType getSuperclass ()
   {
     if (superClass == null
-				&& ! isInterface()
-				&& ! ("java.lang.Object".equals(getName()))
-				&& (flags & EXISTING_CLASS) != 0
-				&& getReflectClass() != null)
-      {
-				superClass = (ClassType) make(reflectClass.getSuperclass());
-      }
+		&& ! isInterface()
+		&& ! ("java.lang.Object".equals(getName()))
+		&& (flags & EXISTING_CLASS) != 0
+		&& getReflectClass() != null)
+		{
+			superClass = (ClassType) make(reflectClass.getSuperclass());
+		}
     return superClass;
   }
 
@@ -474,47 +496,45 @@ public class ClassType extends ObjectType
   public synchronized ClassType[] getInterfaces()
   {
     if (interfaces == null
-				&& (flags & EXISTING_CLASS) != 0
-				&& getReflectClass() != null)
-      {
-				Class[] reflectInterfaces = reflectClass.getInterfaces();
-				int numInterfaces = reflectInterfaces.length;
-				interfaces
-					= numInterfaces == 0 ? noClasses : new ClassType[numInterfaces];
+		&& (flags & EXISTING_CLASS) != 0
+		&& getReflectClass() != null)
+		{
+			Class[] reflectInterfaces = reflectClass.getInterfaces();
+			int numInterfaces = reflectInterfaces.length;
+			interfaces
+				= numInterfaces == 0 ? noClasses : new ClassType[numInterfaces];
 
-				for (int i = 0; i < numInterfaces; i++)
-					interfaces[i] = (ClassType) Type.make(reflectInterfaces[i]);
-      }
+			for (int i = 0; i < numInterfaces; i++)
+				interfaces[i] = (ClassType) Type.make(reflectInterfaces[i]);
+		}
     return interfaces;
   }
 
-  public void setInterfaces (ClassType[] interfaces)
-  { this.interfaces = interfaces; }
+  public void setInterfaces (ClassType[] interfaces) { this.interfaces = interfaces; }
 
   /** Add an interface to the list of implemented interfaces. */
   public void addInterface (ClassType newInterface)
   {
     int oldCount;
     if (interfaces == null || interfaces.length == 0)
-      {
-				oldCount = 0;
-				interfaces = new ClassType[1];
-      }
+		{
+			oldCount = 0;
+			interfaces = new ClassType[1];
+		}
     else
-      {
-				oldCount = interfaces.length;
-				for (int i = oldCount;  --i >= 0; )
-					if (interfaces[i] == newInterface)
-						return;
-				ClassType[] newInterfaces = new ClassType[oldCount+1];
-				System.arraycopy(interfaces, 0, newInterfaces, 0, oldCount);
-				interfaces = newInterfaces;
-      }
+		{
+			oldCount = interfaces.length;
+			for (int i = oldCount;  --i >= 0; )
+				if (interfaces[i] == newInterface)
+					return;
+			ClassType[] newInterfaces = new ClassType[oldCount+1];
+			System.arraycopy(interfaces, 0, newInterfaces, 0, oldCount);
+			interfaces = newInterfaces;
+		}
     interfaces[oldCount] = newInterface;
   }
 
-  public final boolean isInterface()
-  { return (getModifiers() & Access.INTERFACE) != 0; }
+  public final boolean isInterface() { return (getModifiers() & Access.INTERFACE) != 0; }
 
   public final void setInterface(boolean val)
   {
@@ -522,16 +542,21 @@ public class ClassType extends ObjectType
     else access_flags &= ~Access.INTERFACE|Access.ABSTRACT;
   }
 
-  public final boolean isFinal ()
-  { return (getModifiers() & Access.FINAL) != 0; }
+  public final boolean isFinal () { return (getModifiers() & Access.FINAL) != 0; }
 
-  public final boolean isAnnotation ()
-  { return (getModifiers() & Access.ANNOTATION) != 0; }
+  public final boolean isAnnotation () { return (getModifiers() & Access.ANNOTATION) != 0; }
+
+  public ClassType () { }
+
+  public ClassType (String class_name)
+  {
+    super();
+    setName(class_name);
+  }
 
   Field fields;
   int fields_count;
   Field last_field;
-	
   /**  Constant pool index of "ConstantValue". */
   int ConstantValue_name_index;
 
@@ -562,11 +587,11 @@ public class ClassType extends ObjectType
    */
   public Field getDeclaredField(String name)
   {
-    for (Field field = getFields(); field != null; field = field.next)
-      {
-				if (name.equals(field.name))
-					return field;
-      }
+    for (Field field = getFields();   field != null;  field = field.next)
+		{
+			if (name.equals(field.name))
+				return field;
+		}
     return null;
   }
 
@@ -580,25 +605,25 @@ public class ClassType extends ObjectType
   {
     ClassType cl = this;
     for (;;)
-      {
-        Field field = cl.getDeclaredField(name);
-        if (field != null
-            && (mask == -1 || (field.getModifiers() & mask) != 0))
-          return field;
-        ClassType[] interfaces = cl.getInterfaces();
-        if (interfaces != null)
-          {
-            for (int i = 0;  i < interfaces.length;  i++)
-              {
-                field = interfaces[i].getField(name, mask);
-                if (field != null)
-                  return field;
-              }
-          }
-        cl = cl.getSuperclass();
-        if (cl == null)
-          return null;
-      }
+		{
+			Field field = cl.getDeclaredField(name);
+			if (field != null
+			&& (mask == -1 || (field.getModifiers() & mask) != 0))
+				return field;
+			ClassType[] interfaces = cl.getInterfaces();
+			if (interfaces != null)
+			{
+				for (int i = 0;  i < interfaces.length;  i++)
+				{
+					field = interfaces[i].getField(name, mask);
+					if (field != null)
+						return field;
+				}
+			}
+			cl = cl.getSuperclass();
+			if (cl == null)
+				return null;
+		}
   }
 
   /** Find a field with the given name declared in this class or its ancestors.
@@ -649,22 +674,22 @@ public class ClassType extends ObjectType
     Class clas = getReflectClass();
     java.lang.reflect.Field[] fields;
     try
-      {
-        fields = clas.getDeclaredFields();
-      }
+		{
+			fields = clas.getDeclaredFields();
+		}
     catch (SecurityException ex)
-      {
-        fields = clas.getFields();
-      }
+		{
+			fields = clas.getFields();
+		}
     int count = fields.length;
     for (int i = 0;  i < count;  i++)
-      {
-        java.lang.reflect.Field field = fields[i];
-        if ("this$0".equals(field.getName()))
-          flags |= HAS_OUTER_LINK;
-        addField(field.getName(), Type.make(field.getType(), field.getGenericType()),
-                 field.getModifiers());
-      }
+		{
+			java.lang.reflect.Field field = fields[i];
+			if ("this$0".equals(field.getName()))
+				flags |= HAS_OUTER_LINK;
+			addField(field.getName(), Type.make(field.getType(), field.getGenericType()),
+							 field.getModifiers());
+		}
     flags |= ADD_FIELDS_DONE;
   }
 
@@ -855,35 +880,37 @@ public class ClassType extends ObjectType
   {
     int count = 0;
     String inheritingPackage = null;
-    for (ClassType ctype = this;  ctype != null;
+    for (ClassType ctype = this;
+			ctype != null;
 			ctype = ctype.getSuperclass())
     {
       String curPackage = ctype.getPackageName();
       for (Method meth = ctype.getDeclaredMethods();
-           meth != null;  meth = meth.getNext())
-        {
-          if (ctype != this)
-            {
-              int mmods = meth.getModifiers();
-              if ((mmods & Access.PRIVATE) != 0)
-                continue;
-              if ((mmods & (Access.PUBLIC|Access.PROTECTED)) == 0
-                  && ! curPackage.equals(inheritingPackage))
-                continue;
-            }
-          if (filter.select(meth))
-            {
-              if (result != null)
-                {
-                  /* #ifdef JAVA2 */
-                  result.add(meth);
-                  /* #else */
-                  // result.addElement(meth);
-                  /* #endif */
-                }
-              count++;
-            }
-        }
+				 meth != null;
+				 meth = meth.getNext())
+			{
+				if (ctype != this)
+				{
+					int mmods = meth.getModifiers();
+					if ((mmods & Access.PRIVATE) != 0)
+						continue;
+					if ((mmods & (Access.PUBLIC|Access.PROTECTED)) == 0
+							&& ! curPackage.equals(inheritingPackage))
+						continue;
+				}
+				if (filter.select(meth))
+				{
+					if (result != null)
+					{
+						/* #ifdef JAVA2 */
+						result.add(meth);
+						/* #else */
+						// result.addElement(meth);
+						/* #endif */
+					}
+					count++;
+				}
+			}
 
       inheritingPackage = curPackage;
 
@@ -891,14 +918,14 @@ public class ClassType extends ObjectType
 				break;
 
       if (searchSupers > 1)
+			{
+				ClassType[] interfaces = ctype.getInterfaces();
+				if (interfaces != null)
 				{
-					ClassType[] interfaces = ctype.getInterfaces();
-					if (interfaces != null)
-						{
-							for (int i = 0;  i < interfaces.length;  i++)
-								count += interfaces[i].getMethods(filter, searchSupers, result);
-						}
+					for (int i = 0;  i < interfaces.length;  i++)
+						count += interfaces[i].getMethods(filter, searchSupers, result);
 				}
+			}
     }
     return count;
   }
@@ -931,31 +958,32 @@ public class ClassType extends ObjectType
   {
     int needOuterLinkArg = "<init>".equals(name) && hasOuterLink() ? 1 : 0;
     for (Method method = getDeclaredMethods();
-			method != null;  method = method.next)
-      {
-				if (! name.equals(method.getName()))
+			method != null;
+			method = method.next)
+		{
+			if (! name.equals(method.getName()))
+				continue;
+			Type[] method_args = method.getParameterTypes();
+			if (arg_types == null
+			|| (arg_types == method_args && needOuterLinkArg==0))
+				return method;
+			int i = arg_types.length;
+			if (i != method_args.length-needOuterLinkArg)
+				continue;
+			while (-- i >= 0)
+			{
+				Type meth_type = method_args[i+needOuterLinkArg];
+				Type need_type = arg_types[i];
+				if (meth_type == need_type || need_type == null)
 					continue;
-				Type[] method_args = method.getParameterTypes();
-				if (arg_types == null
-						|| (arg_types == method_args && needOuterLinkArg==0))
-					return method;
-				int i = arg_types.length;
-				if (i != method_args.length-needOuterLinkArg)
-					continue;
-				while (-- i >= 0)
-					{
-						Type meth_type = method_args[i+needOuterLinkArg];
-						Type need_type = arg_types[i];
-						if (meth_type == need_type || need_type == null)
-							continue;
-						String meth_sig = meth_type.getSignature();
-						String need_sig = need_type.getSignature();
-						if (! meth_sig.equals(need_sig))
-							break;
-					}
-				if (i < 0)
-					return method;
-      }
+				String meth_sig = meth_type.getSignature();
+				String need_sig = need_type.getSignature();
+				if (! meth_sig.equals(need_sig))
+					break;
+			}
+			if (i < 0)
+				return method;
+		}
     return null;
   }
 
@@ -964,22 +992,24 @@ public class ClassType extends ObjectType
     Method result = null;
     int needOuterLinkArg = "<init>".equals(name) && hasOuterLink() ? 1 : 0;
     for (Method method = getDeclaredMethods();
-				method != null;  method = method.next)
-      {
-        if (mustBeStatic && ! method.getStaticFlag())
-          continue;
-				if (name.equals(method.getName())
-						&& argCount + needOuterLinkArg == method.getParameterTypes().length)
-					{
-						if (result != null)
-							throw new Error("ambiguous call to getDeclaredMethod(\""
-									+ name + "\", " + argCount+
-									")\n - " + result + "\n - " + method);
-						result = method;
-					}
-      }
+			method != null;
+			method = method.next)
+		{
+			if (mustBeStatic && ! method.getStaticFlag())
+				continue;
+			if (name.equals(method.getName())
+					&& argCount + needOuterLinkArg == method.getParameterTypes().length)
+			{
+				if (result != null)
+					throw new Error("ambiguous call to getDeclaredMethod(\""
+							+ name + "\", " + argCount+
+							")\n - " + result + "\n - " + method);
+				result = method;
+			}
+		}
     return result;
   }
+	
   /** Get a method with matching name and number of arguments. */
   public Method getDeclaredMethod(String name, int argCount)
   {
@@ -1000,32 +1030,32 @@ public class ClassType extends ObjectType
   {
     ClassType cl = this;
     for (;;)
-      {
-        Method method = cl.getDeclaredMethod(name, arg_types);
-				if (method != null)
-					return method;
-				cl = cl.getSuperclass();
-				if (cl == null)
-					break;
-      }
-		cl = this;
-		for (;;)
+		{
+			Method method = cl.getDeclaredMethod(name, arg_types);
+			if (method != null)
+				return method;
+			cl = cl.getSuperclass();
+			if (cl == null)
+				break;
+		}
+    cl = this;
+    for (;;)
+		{
+			ClassType[] interfaces = cl.getInterfaces();
+			if (interfaces != null)
 			{
-				ClassType[] interfaces = cl.getInterfaces();
-				if (interfaces != null)
-					{
-						for (int i = 0;  i < interfaces.length;  i++)
-							{
-								Method method
-									= interfaces[i].getDeclaredMethod(name, arg_types);
-								if (method != null)
-									return method;
-							}
-					}
-				cl = cl.getSuperclass();
-				if (cl == null)
-					break;
+				for (int i = 0;  i < interfaces.length;  i++)
+				{
+					Method method
+						= interfaces[i].getDeclaredMethod(name, arg_types);
+					if (method != null)
+						return method;
+				}
 			}
+			cl = cl.getSuperclass();
+			if (cl == null)
+				break;
+		}
     return null;
   }
 
@@ -1048,39 +1078,39 @@ public class ClassType extends ObjectType
 
     java.lang.reflect.Method[] methods;
     try
-      {
-        methods = clas.getDeclaredMethods();
-      }
+		{
+			methods = clas.getDeclaredMethods();
+		}
     catch (SecurityException ex)
-      {
-        methods = clas.getMethods();
-      }
+		{
+			methods = clas.getMethods();
+		}
     int count = methods.length;
     for (int i = 0;  i < count;  i++)
-      {
-        java.lang.reflect.Method method = methods[i];
-        if (! method.getDeclaringClass().equals(clas))
-          continue;
-        addMethod(method);
-      }
+		{
+			java.lang.reflect.Method method = methods[i];
+			if (! method.getDeclaringClass().equals(clas))
+				continue;
+			addMethod(method);
+		}
 
     java.lang.reflect.Constructor[] cmethods;
     try
-      {
-        cmethods = clas.getDeclaredConstructors();
-      }
+		{
+			cmethods = clas.getDeclaredConstructors();
+		}
     catch (SecurityException ex)
-      {
-        cmethods = clas.getConstructors();
-      }
+		{
+			cmethods = clas.getConstructors();
+		}
     count = cmethods.length;
     for (int i = 0;  i < count;  i++)
-      {
-        java.lang.reflect.Constructor method = cmethods[i];
-        if (! method.getDeclaringClass().equals(clas))
-          continue;
-        addMethod(method);
-      }
+		{
+			java.lang.reflect.Constructor method = cmethods[i];
+			if (! method.getDeclaringClass().equals(clas))
+				continue;
+			addMethod(method);
+		}
   }
 
   public Method[] getMatchingMethods(String name, Type[] paramTypes, int flags)
@@ -1088,19 +1118,19 @@ public class ClassType extends ObjectType
     int nMatches = 0;
     java.util.Vector matches = new java.util.Vector(10);
     for (Method method = methods;  method != null;  method = method.getNext())
-			{
-				if (! name.equals(method.getName()))
-					continue;
-				if ((flags & Access.STATIC) != (method.access_flags & Access.STATIC))
-					continue;
-				if ((flags & Access.PUBLIC) > (method.access_flags & Access.PUBLIC))
-					continue;
-				Type[] mtypes = method.arg_types;
-				if (mtypes.length != paramTypes.length)
-					continue;
-				nMatches++;
-				matches.addElement(method);
-			}
+    {
+      if (! name.equals(method.getName()))
+        continue;
+      if ((flags & Access.STATIC) != (method.access_flags & Access.STATIC))
+        continue;
+      if ((flags & Access.PUBLIC) > (method.access_flags & Access.PUBLIC))
+        continue;
+      Type[] mtypes = method.arg_types;
+      if (mtypes.length != paramTypes.length)
+        continue;
+      nMatches++;
+      matches.addElement(method);
+    }
     Method[] result = new Method[nMatches];
     matches.copyInto(result);
     return result;
@@ -1118,44 +1148,46 @@ public class ClassType extends ObjectType
     if (superClass == this)
       setSuper((ClassType) null);
     if (superClassIndex < 0)
-      superClassIndex = superClass == null ? 0
-				: constants.addClass(superClass).index;
+      superClassIndex = superClass == null
+						? 0
+						: constants.addClass(superClass).index;
     if (interfaces != null && interfaceIndexes == null)
-      {
-				int n = interfaces.length;
-				interfaceIndexes = new int [n];
-				for (int i = 0;  i < n;  i++)
-					interfaceIndexes[i] = constants.addClass(interfaces[i]).index;
-      }
+		{
+			int n = interfaces.length;
+			interfaceIndexes = new int [n];
+			for (int i = 0;  i < n;  i++)
+				interfaceIndexes[i] = constants.addClass(interfaces[i]).index;
+		}
     for (Field field = fields; field != null; field = field.next)
-			{
-				field.assign_constants (this);
-			}
+		{
+      field.assign_constants (this);
+    }
     for (Method method = methods; method != null; method = method.next)
       method.assignConstants();
     if (enclosingMember instanceof Method)
-      {
-        EnclosingMethodAttr attr =
-          EnclosingMethodAttr.getFirstEnclosingMethod(getAttributes());
-        if (attr == null)
-          attr = new EnclosingMethodAttr(this);
-        attr.method = (Method) enclosingMember;
-      }
+		{
+			EnclosingMethodAttr attr =
+				EnclosingMethodAttr.getFirstEnclosingMethod(getAttributes());
+			if (attr == null)
+				attr = new EnclosingMethodAttr(this);
+			attr.method = (Method) enclosingMember;
+		}
     else if (enclosingMember instanceof ClassType)
       constants.addClass((ClassType) enclosingMember);
-    for (ClassType member = firstInnerClass;  member != null;
-         member = member.nextInnerClass)
-      {
-        constants.addClass(member);
-      }
+    for (ClassType member = firstInnerClass;
+				member != null;
+				member = member.nextInnerClass)
+		{
+			constants.addClass(member);
+		}
 
     InnerClassesAttr innerAttr
       = InnerClassesAttr.getFirstInnerClasses(getAttributes());
     if (innerAttr != null)
-      {
-        // Should never happen ...
-        innerAttr.setSkipped(true);
-      }
+		{
+			// Should never happen ...
+			innerAttr.setSkipped(true);
+		}
 
     Attribute.assignConstants(this, this);
 
@@ -1164,26 +1196,26 @@ public class ClassType extends ObjectType
     // have an entry for all non-package-level classes in the constant-pool.
     // Note that count is not constant in this loop.
     for (int i = 1; i <= constants.count; i++)
-      {
-				CpoolEntry entry = constants.pool[i];
-        if (! (entry instanceof CpoolClass))
-          continue;
-        CpoolClass centry = (CpoolClass) entry;
-        if (! (centry.clas instanceof ClassType))
-          continue;
-        ClassType ctype = (ClassType) centry.clas;
-        if (ctype.getEnclosingMember() != null)
-          {
-            if (innerAttr == null)
-              innerAttr = new InnerClassesAttr(this);
-            innerAttr.addClass(centry, this);
-          }
-      }
+		{
+			CpoolEntry entry = constants.pool[i];
+			if (! (entry instanceof CpoolClass))
+				continue;
+			CpoolClass centry = (CpoolClass) entry;
+			if (! (centry.clas instanceof ClassType))
+				continue;
+			ClassType ctype = (ClassType) centry.clas;
+			if (ctype.getEnclosingMember() != null)
+			{
+				if (innerAttr == null)
+					innerAttr = new InnerClassesAttr(this);
+				innerAttr.addClass(centry, this);
+			}
+		}
     if (innerAttr != null)
-      {
-        innerAttr.setSkipped(false);                                       
-        innerAttr.assignConstants(this);
-      }
+		{
+			innerAttr.setSkipped(false);                                       
+			innerAttr.assignConstants(this);
+		}
   }
 
   public void writeToStream (OutputStream stream)
@@ -1210,12 +1242,12 @@ public class ClassType extends ObjectType
     if (interfaceIndexes == null)
       dstr.writeShort (0);  // interfaces_count
     else
-      {
-				int interfaces_count = interfaceIndexes.length;
-				dstr.writeShort (interfaces_count);
-				for (i = 0;  i < interfaces_count; i++)
-					dstr.writeShort (interfaceIndexes[i]);
-      }
+		{
+			int interfaces_count = interfaceIndexes.length;
+			dstr.writeShort (interfaces_count);
+			for (i = 0;  i < interfaces_count; i++)
+				dstr.writeShort (interfaceIndexes[i]);
+		}
 
     dstr.writeShort (fields_count);
     for (Field field = fields;  field != null;  field = field.next)
@@ -1249,13 +1281,13 @@ public class ClassType extends ObjectType
   {
     ByteArrayOutputStream stream = new ByteArrayOutputStream (500);
     try
-      {
-				writeToStream(stream);
-      }
+		{
+			writeToStream(stream);
+		}
     catch (java.io.IOException ex)
-      {
-				throw new InternalError(ex.toString());
-      }
+		{
+			throw new InternalError(ex.toString());
+		}
     return stream.toByteArray ();    
   }
 
@@ -1271,31 +1303,34 @@ public class ClassType extends ObjectType
     int str_len = str.length ();
     int utf_len = 0;
     for (int i = 0; i < str_len; i++)
-			{
-				int c = str.charAt(i);
-				if ((c > 0) && (c <= 0x7F))
-					utf_len++;
-				else if (c <= 0x7FF)
-					utf_len += 2;
-				else
-					utf_len += 3;
-			}
+		{
+      int c = str.charAt(i);
+      if ((c > 0) && (c <= 0x7F))
+				utf_len++;
+      else if (c <= 0x7FF)
+				utf_len += 2;
+      else
+				utf_len += 3;
+    }
     byte[] buffer = new byte[utf_len];
     int j = 0;
     for (int i = 0; i < str_len; i++)
+		{
+      int c = str.charAt(i);
+      if ((c > 0) && (c <= 0x7F))
+				buffer[j++] = (byte) c;
+      else if (c <= 0x7FF)
 			{
-				int c = str.charAt(i);
-				if ((c > 0) && (c <= 0x7F))
-					buffer[j++] = (byte) c;
-				else if (c <= 0x7FF) {
-					buffer[j++] = (byte) (0xC0 | ((c >>  6) & 0x1F));
-					buffer[j++] = (byte) (0x80 | ((c >>  0) & 0x3F));
-				} else {
-					buffer[j++] = (byte) (0xE0 | ((c >> 12) & 0x0F));
-					buffer[j++] = (byte) (0x80 | ((c >>  6) & 0x3F));
-					buffer[j++] = (byte) (0x80 | ((c >>  0) & 0x3F));
-				}
-			}
+				buffer[j++] = (byte) (0xC0 | ((c >>  6) & 0x1F));
+				buffer[j++] = (byte) (0x80 | ((c >>  0) & 0x3F));
+      }
+			else
+			{
+				buffer[j++] = (byte) (0xE0 | ((c >> 12) & 0x0F));
+				buffer[j++] = (byte) (0x80 | ((c >>  6) & 0x3F));
+				buffer[j++] = (byte) (0x80 | ((c >>  0) & 0x3F));
+      }
+    }
     return buffer;
   }
 
@@ -1309,13 +1344,13 @@ public class ClassType extends ObjectType
       return true;
     ClassType[] interfaces = getInterfaces();
     if (interfaces != null)
-      {
-				for (int i = interfaces.length;  --i >= 0; )
-					{
-						if (interfaces[i].implementsInterface(iface))
-							return true;
-					}
-      }
+		{
+			for (int i = interfaces.length;  --i >= 0; )
+			{
+				if (interfaces[i].implementsInterface(iface))
+					return true;
+			}
+		}
     return false;
   }
 
@@ -1327,13 +1362,13 @@ public class ClassType extends ObjectType
   {
     ClassType ctype = this;
     for (;;)
-      {
-        if (cname.equals(ctype.getName()))
-          return true;
-        ctype = ctype.getSuperclass();
-        if (ctype == null)
-          return false;
-      }
+		{
+			if (cname.equals(ctype.getName()))
+				return true;
+			ctype = ctype.getSuperclass();
+			if (ctype == null)
+				return false;
+		}
   }
 
   public final boolean isSubclass(ClassType other)
@@ -1341,17 +1376,17 @@ public class ClassType extends ObjectType
     if (other.isInterface())
       return implementsInterface(other);
     if ((this == toStringType && other == javalangStringType)
-			|| (this == javalangStringType && other == toStringType))
+		|| (this == javalangStringType && other == toStringType))
       return true;
     if (other == Type.javalangObjectType)
       return true;
     ClassType baseClass = this;
     while (baseClass != null)
-      {
-        if (baseClass == other)
-          return true;
-        baseClass = baseClass.getSuperclass();
-      }
+		{
+			if (baseClass == other)
+				return true;
+			baseClass = baseClass.getSuperclass();
+		}
     return false;
   }
 
@@ -1374,10 +1409,12 @@ public class ClassType extends ObjectType
     if (cother == toStringType)
       return this == Type.javalangObjectType ? 1 : -1;
     if (this.isInterface())
-      return cother.isAnnotation() || cother.isFinal() ? -3
+      return cother.isAnnotation() || cother.isFinal()
+				? -3
         : cother == Type.javalangObjectType ? -1 : -2;
     if (cother.isInterface())
-      return isAnnotation() || isFinal() ? -3
+      return isAnnotation() || isFinal()
+				? -3
         : this == Type.javalangObjectType ? 1 : -2;
     return -3;
   }
@@ -1411,12 +1448,12 @@ public class ClassType extends ObjectType
     // java.util.Hashtable map = mapNameToType;
     /* #endif */
     synchronized (map)
-      {
-        Type found = (Type) map.get(name);
-        if (found != null)
-          return found;
-        map.put(name, this);
-      }
+		{
+			Type found = (Type) map.get(name);
+			if (found != null)
+				return found;
+			map.put(name, this);
+		}
     return this;
   }
 
@@ -1444,18 +1481,18 @@ public class ClassType extends ObjectType
     int nmethods = methods.length;
     Method result = null;
     for (int i = 0;  i < nmethods;  i++)
-      {
-        Method meth = methods[i];
-        String mname = meth.getName();
-        Type[] ptypes = meth.getParameterTypes();
+		{
+			Method meth = methods[i];
+			String mname = meth.getName();
+			Type[] ptypes = meth.getParameterTypes();
 
-        Method mimpl = getMethod(mname, ptypes);
-        if (mimpl != null && ! mimpl.isAbstract())
-          continue;
-        if (result != null)
-          return null;
-        result = meth;
-      }
+			Method mimpl = getMethod(mname, ptypes);
+			if (mimpl != null && ! mimpl.isAbstract())
+				continue;
+			if (result != null)
+				return null;
+			result = meth;
+		}
     return result;
   }
 

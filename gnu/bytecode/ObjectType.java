@@ -97,19 +97,19 @@ public class ObjectType extends Type
   public static ClassLoader getContextClassLoader ()
   {
     try
-		{
-			return Thread.currentThread().getContextClassLoader();
-		}
+      {
+        return Thread.currentThread().getContextClassLoader();
+      }
     catch (java.lang.SecurityException ex)
-		{
-			/* The .class syntax below also works for JDK 1.4, but it's just
-				 syntactic sugar, so there is no benefit in using it. */
-			/* #ifdef JAVA5 */
-			return ObjectType.class.getClassLoader();
-			/* #else */
-			// return thisClassLoader;
-			/* #endif */
-		}
+      {
+        /* The .class syntax below also works for JDK 1.4, but it's just
+           syntactic sugar, so there is no benefit in using it. */
+        /* #ifdef JAVA5 */
+        return ObjectType.class.getClassLoader();
+        /* #else */
+        // return thisClassLoader;
+        /* #endif */
+      }
   }
   /* #endif */
 
@@ -117,30 +117,29 @@ public class ObjectType extends Type
   public Class getReflectClass()
   {
     try
-		{
-			if (reflectClass == null)
-				reflectClass = getContextClass(getInternalName().replace('/', '.'));
-			setExisting(true);
-		}
+      {
+	if (reflectClass == null)
+          reflectClass = getContextClass(getInternalName().replace('/', '.'));
+        setExisting(true);
+      }
     catch (java.lang.ClassNotFoundException ex)
-		{
-			if ((flags & EXISTING_CLASS) != 0)
-			{
-				RuntimeException rex
-					= new RuntimeException("no such class: "+getName());
-				/* #ifdef use:java.lang.Throwable.getCause */
-				rex.initCause(ex);
-				/* #endif */
-				throw rex;
-			}
-		}
+      {
+        if ((flags & EXISTING_CLASS) != 0)
+          {
+	    RuntimeException rex
+              = new RuntimeException("no such class: "+getName());
+            /* #ifdef use:java.lang.Throwable.getCause */
+            rex.initCause(ex);
+            /* #endif */
+            throw rex;
+          }
+      }
     return reflectClass;
   }
 
   public Type getImplementationType()
   {
-    return this == nullType
-			? objectType
+    return this == nullType ? objectType
       : this == toStringType ? javalangStringType : this;
   }
 
@@ -184,15 +183,14 @@ public class ObjectType extends Type
     return Type.objectType.getMethods(filter, searchSupers, result);
   }
 
-	public int compare(Type other)
-	{
-		if (this == other)
-			return 0;
-		else if (this == nullType)
-			return -1;
-		else
-			return -3;
-	}
+    public int compare(Type other) {
+	if (this == other)
+	    return 0;
+	else if (this == nullType)
+	    return -1;
+	else
+	    return -3;
+    }
 
   /* #ifdef JAVA5 */
   @SuppressWarnings("unchecked")
@@ -202,16 +200,16 @@ public class ObjectType extends Type
   public Object coerceFromObject (Object obj)
   {
     if (obj != null)
-		{
-			if (this == Type.toStringType)
-				return obj.toString();
-			Class clas = getReflectClass();
-			Class objClass = obj.getClass();
-			if (! clas.isAssignableFrom(objClass))
-				throw new ClassCastException("don't know how to coerce "
-																		 + objClass.getName() + " to "
-																		 + getName());
-		}
+      {
+	if (this == Type.toStringType)
+	  return obj.toString();
+        Class clas = getReflectClass();
+        Class objClass = obj.getClass();
+        if (! clas.isAssignableFrom(objClass))
+          throw new ClassCastException("don't know how to coerce "
+                                       + objClass.getName() + " to "
+                                       + getName());
+      }
     return obj;
   }
 
@@ -219,21 +217,21 @@ public class ObjectType extends Type
   public void emitCoerceFromObject (CodeAttr code)
   {
     if (this == Type.toStringType)
-		{
-			// This would be nice but it doesn't verify, alas!
-			// code.reserve(4);
-			// code.emitDup();
-			// code.put1(198); // ifnull
-			// code.put2(6);  // skip after emitInvokeVirtual.
-			// code.emitInvokeVirtual(Type.toString_method);
-			code.emitDup();
-			code.emitIfNull();
-			code.emitPop(1);
-			code.emitPushNull();
-			code.emitElse();
-			code.emitInvokeVirtual(Type.toString_method);
-			code.emitFi();
-		}
+      {
+	// This would be nice but it doesn't verify, alas!
+	// code.reserve(4);
+	// code.emitDup();
+	// code.put1(198); // ifnull
+	// code.put2(6);  // skip after emitInvokeVirtual.
+	// code.emitInvokeVirtual(Type.toString_method);
+	code.emitDup();
+	code.emitIfNull();
+	code.emitPop(1);
+	code.emitPushNull();
+	code.emitElse();
+	code.emitInvokeVirtual(Type.toString_method);
+	code.emitFi();
+      }
     else if (this != Type.objectType)
       code.emitCheckcast(this);
   }

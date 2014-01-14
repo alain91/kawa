@@ -26,36 +26,48 @@ public class ClassFileInput extends DataInputStream
   {
     super(str);
     this.ctype = ctype;
-		reset();
-    if (!readMagic())
-      throw new ClassFormatError("invalid magic number");
+    readMagic();
 		readFormatVersion();
     readConstants();
-    readClassInfo();
-    readFields();
-    readMethods();
-    readAttributes(ctype);
+    //readClassInfo();
+    //readFields();
+    //readMethods();
+    //readAttributes(ctype);
   }
- 
+
   /**
 	 * Read a class (in .class format) from an InputStream.
    * @return A new ClassType object representing the class that was read.
    */
   public static ClassType readClassType (InputStream str)
-       throws IOException, ClassFormatError
+			throws IOException, ClassFormatError
   {
     ClassType ctype = new ClassType();
     new ClassFileInput(ctype, str);
     return ctype;
   }
 
+  /**
+	 * Read a class (in .class format) from an InputStream.
+   * @return A new ClassType object representing the class that was read.
+   */
+  public static void readClassBase (ClassType ctype, InputStream str)
+			throws IOException, ClassFormatError
+  {
+    new ClassFileInput(ctype, str);
+  }
+
 	/**
 	 *
 	 */
-  public boolean readMagic () throws IOException
+  public boolean readMagic ()
+			throws IOException, ClassFormatError
   {
     int magic = readInt();
-    return (magic == 0xcafebabe);
+		boolean isOk = (magic == 0xcafebabe);
+    if (! isOk)
+			throw new ClassFormatError("invalid magic number");
+		return isOk;
   }
 
 	/**
@@ -73,13 +85,14 @@ public class ClassFileInput extends DataInputStream
 	 */
   public ConstantPool readConstants () throws IOException
   {
-    ctype.constants = new ConstantPool(this);
+    return new ConstantPool(this);
   }
 
 	/**
 	 *
 	 */
-  public void readClassInfo () throws IOException
+  public void readClassInfo ()
+			throws IOException
   {
     ctype.access_flags = readUnsignedShort();
     CpoolClass clas;
@@ -101,9 +114,12 @@ public class ClassFileInput extends DataInputStream
 			ctype.setSuper(name.replace('/', '.'));
 		}
 	}
-	
+
   public void readInterfaces () throws IOException
-  {	
+  {
+		CpoolClass clas;
+		String name;
+
     int nInterfaces = readUnsignedShort();
     if (nInterfaces > 0)
 		{
@@ -139,7 +155,7 @@ public class ClassFileInput extends DataInputStream
 			readAttributes(fld);
 		}
   }
-	
+
 	/**
 	 *
 	 */
@@ -157,7 +173,7 @@ public class ClassFileInput extends DataInputStream
 			readAttributes(meth);
 		}
   }
-	
+
 	/**
 	 *
 	 */
@@ -177,7 +193,7 @@ public class ClassFileInput extends DataInputStream
 					last = next;
 				}
 			}
-	
+
 			int index = readUnsignedShort();
 			CpoolUtf8 nameConstant = (CpoolUtf8)
 				ctype.constants.getForced(index, ConstantPool.UTF8);
@@ -218,7 +234,7 @@ public class ClassFileInput extends DataInputStream
 			if (skipped == 0)
 			{
 				if (read() < 0)
-					throw new java.io.EOFException("EOF while reading class files attributes"); 
+					throw new java.io.EOFException("EOF while reading class files attributes");
 				skipped = 1;
 			}
 			read += skipped;
@@ -337,7 +353,7 @@ public class ClassFileInput extends DataInputStream
     else if (name == "InnerClasses" && container instanceof ClassType)
 		{
 			int count = 4 * readUnsignedShort();
-			short[] data = new short[count]; 
+			short[] data = new short[count];
 			for (int i = 0;  i < count;  i++)
 			{
 				data[i] = readShort();

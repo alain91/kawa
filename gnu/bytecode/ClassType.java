@@ -5,18 +5,77 @@
 package gnu.bytecode;
 import java.io.*;
 import java.util.*;
+import java.util.jar.*;
+import java.util.zip.*;
 
-public class ClassType extends ObjectType 
+public class ClassType extends ObjectType
   implements AttrContainer, Externalizable, Member
 {
   public ClassType () { }
 
   public ClassType (String class_name)
   {
-    super();
+		super();
     setName(class_name);
+		initBase();
+	}
+
+	private static JarFile jarFile = null;
+	private static java.util.HashMap<String,InputStream> mapClassNameToInputStream = null;
+
+	private void initBase()
+	{
+		try
+		{
+			if (jarFile == null)
+			{
+				String strFile = getClass().getProtectionDomain().getCodeSource().
+													getLocation().toString().substring(6);
+				jarFile = new JarFile(strFile);
+			}
+
+			String name = getClass().getName();
+			String entryName = name.replace('.','/')+".class";
+			ZipEntry entry = jarFile.getEntry(entryName);
+			if (entry == null)
+				throw new RuntimeException("no such entry class : "+entryName);
+
+			if (mapClassNameToInputStream == null)
+					mapClassNameToInputStream = new java.util.HashMap<String,InputStream>();
+
+			InputStream classInputStream = getClassInputStream(name);
+			if (classInputStream == null)
+			{
+				classInputStream = jarFile.getInputStream(entry);
+				putClassInputStream(name, classInputStream);
+				ClassFileInput.readClassBase(this, classInputStream);
+				System.out.println("NEW name = " + name + " classInputStream = " + classInputStream);
+			}
+		}
+		catch (Exception ex)
+		{
+			throw new InternalError(ex.toString());
+		}
   }
-	
+
+  public final InputStream getClassInputStream(String name)
+	{
+			java.util.HashMap<String,InputStream> map = mapClassNameToInputStream;
+			synchronized (map)
+			{
+				return map.get(name);
+			}
+	}
+
+  private final InputStream putClassInputStream(String name, InputStream value)
+	{
+			java.util.HashMap<String,InputStream> map = mapClassNameToInputStream;
+			synchronized (map)
+			{
+				return map.put(name, value);
+			}
+	}
+
   public static final int JDK_1_1_VERSION = 45 * 0x10000 + 3;
   public static final int JDK_1_2_VERSION = 46 * 0x10000 + 0;
   public static final int JDK_1_3_VERSION = 47 * 0x10000 + 0;
@@ -33,27 +92,27 @@ public class ClassType extends ObjectType
   {
     return (short) (classfileFormatVersion >> 16);
   }
-	
+
   public short getClassfileMinorVersion ()
   {
     return (short) (classfileFormatVersion & 0xFFFF);
   }
-	
+
   public void setClassfileVersion (int major, int minor)
   {
     classfileFormatVersion = (major & 0xFFFF) * 0x10000 + (minor * 0xFFFF);
   }
-	
+
   public void setClassfileVersion (int code)
   {
     classfileFormatVersion = code;
   }
-	
+
   public int getClassfileVersion ()
   {
     return classfileFormatVersion;
   }
-	
+
   public void setClassfileVersionJava5 ()
   {
     setClassfileVersion(JDK_1_5_VERSION);
@@ -129,7 +188,7 @@ public class ClassType extends ObjectType
   /** Set the modifiers (access flags) for this class. */
   public final void setModifiers(int flags) { access_flags = flags; }
   public final void addModifiers(int flags) { access_flags |= flags; }
-	
+
   public final boolean getStaticFlag ()
 	{
     return (getModifiers() & Access.STATIC) != 0;
@@ -197,7 +256,7 @@ public class ClassType extends ObjectType
   ClassType nextInnerClass;
 
   Member enclosingMember;
-	
+
   public ClassType getDeclaringClass()
   {
     addEnclosingMember();
@@ -531,7 +590,7 @@ public class ClassType extends ObjectType
   Field fields;
   int fields_count;
   Field last_field;
-	
+
   /**  Constant pool index of "ConstantValue". */
   int ConstantValue_name_index;
 
@@ -683,7 +742,7 @@ public class ClassType extends ObjectType
 	{
     return methods_count;
   }
- 
+
   Method addMethod ()
 	{
     return new Method (this, 0);
@@ -1181,7 +1240,7 @@ public class ClassType extends ObjectType
       }
     if (innerAttr != null)
       {
-        innerAttr.setSkipped(false);                                       
+        innerAttr.setSkipped(false);
         innerAttr.assignConstants(this);
       }
   }
@@ -1256,7 +1315,7 @@ public class ClassType extends ObjectType
       {
 				throw new InternalError(ex.toString());
       }
-    return stream.toByteArray ();    
+    return stream.toByteArray ();
   }
 
   /**

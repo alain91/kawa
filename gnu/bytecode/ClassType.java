@@ -1,12 +1,9 @@
-// Copyright (c) 2014  Alain Gandon.
 // Copyright (c) 1997, 1998, 1999, 2001, 2002, 2004, 2005, 2008, 2009, 2011  Per M.A. Bothner.
 // This is free software;  for terms and warranty disclaimer see ./COPYING.
 
 package gnu.bytecode;
 import java.io.*;
 import java.util.*;
-import java.util.jar.*;
-import java.util.zip.*;
 
 public class ClassType extends ObjectType 
   implements AttrContainer, Externalizable, Member
@@ -508,7 +505,6 @@ public class ClassType extends ObjectType
   {
     super();
     setName(class_name);
-		initBase();
   }
 
   Field fields;
@@ -1432,59 +1428,4 @@ public class ClassType extends ObjectType
     return result;
   }
 
-	private static JarFile jarFile = null;
-	private static java.util.HashMap<String,InputStream> mapClassNameToInputStream = null;
-
-	private void initBase()
-	{
-		try
-		{
-			if (jarFile == null)
-			{
-				String strFile = getClass().getProtectionDomain().getCodeSource().
-													getLocation().toString().substring(6);
-				jarFile = new JarFile(strFile);
-			}
-
-			String name = getClass().getName();
-			String entryName = name.replace('.','/')+".class";
-			ZipEntry entry = jarFile.getEntry(entryName);
-			if (entry == null)
-				throw new RuntimeException("no such entry class : "+entryName);
-
-			if (mapClassNameToInputStream == null)
-					mapClassNameToInputStream = new java.util.HashMap<String,InputStream>();
-
-			InputStream classInputStream = getClassInputStream(name);
-			if (classInputStream == null)
-			{
-				classInputStream = jarFile.getInputStream(entry);
-				putClassInputStream(name, classInputStream);
-				ClassFileInput.readClassBase(this, classInputStream);
-				System.out.println("NEW name = " + name + " classInputStream = " + classInputStream);
-			}
-		}
-		catch (Exception ex)
-		{
-			throw new InternalError(ex.toString());
-		}
-  }
-
-  public final InputStream getClassInputStream(String name)
-	{
-			java.util.HashMap<String,InputStream> map = mapClassNameToInputStream;
-			synchronized (map)
-			{
-				return map.get(name);
-			}
-	}
-
-  private final InputStream putClassInputStream(String name, InputStream value)
-	{
-			java.util.HashMap<String,InputStream> map = mapClassNameToInputStream;
-			synchronized (map)
-			{
-				return map.put(name, value);
-			}
-	}
 }

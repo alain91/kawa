@@ -30,7 +30,7 @@ public class ClassFileInput extends DataInputStream
     if (!readHeader())
       throw new ClassFormatError("invalid magic number");
     ctype.constants = readConstants();
-    readClassInfo();
+    //readClassInfo();
     //readFields();
     //readMethods();
     //readAttributes(ctype);

@@ -1,9 +1,12 @@
+// Copyright (c) 2014  Alain Gandon.
 // Copyright (c) 1997, 1998, 1999, 2001, 2002, 2004, 2005, 2008, 2009, 2011  Per M.A. Bothner.
 // This is free software;  for terms and warranty disclaimer see ./COPYING.
 
 package gnu.bytecode;
 import java.io.*;
 import java.util.*;
+import java.util.jar.*;
+import java.util.zip.*;
 
 public class ClassType extends ObjectType 
   implements AttrContainer, Externalizable, Member
@@ -505,6 +508,7 @@ public class ClassType extends ObjectType
   {
     super();
     setName(class_name);
+		initBase();
   }
 
   Field fields;
@@ -1428,4 +1432,36 @@ public class ClassType extends ObjectType
     return result;
   }
 
+  static java.util.HashMap<String,ClassFileInput> mapNameToFileinput = null;
+	
+	private void initBase()
+	{
+		String name = getClass().getName();
+		ClassFileInput i = getNameToFileinput (name);
+		if (i == null)
+		{
+			i = ClassFileInput.readClassBase(this);
+			putNameToFileinput(name, i);
+		}
+  }
+	
+	private ClassFileInput getNameToFileinput (String name)
+	{
+		if (mapNameToFileinput == null)
+				mapNameToFileinput = new java.util.HashMap<String,ClassFileInput>();
+		java.util.HashMap<String,ClassFileInput> map = mapNameToFileinput;
+		synchronized (map)
+			{
+				return map.get(name);
+			}
+	}
+	
+	private ClassFileInput putNameToFileinput (String name, ClassFileInput fileInput)
+	{
+		java.util.HashMap<String,ClassFileInput> map = mapNameToFileinput;
+		synchronized (map)
+			{
+				return map.put(name, fileInput);
+			}
+	}
 }

@@ -1,3 +1,4 @@
+// Copyright (c) 2013  Alain Gandon.
 // Copyright (c) 1997, 2004, 2008  Per M.A. Bothner.
 // This is free software;  for terms and warranty disclaimer see ./COPYING.
 
@@ -20,7 +21,7 @@ public class ClassFileInput extends DataInputStream
   {
     super(str);
   }
-
+	
   public ClassFileInput (ClassType ctype, InputStream str)
        throws IOException, ClassFormatError
   {
@@ -28,11 +29,14 @@ public class ClassFileInput extends DataInputStream
     this.ctype = ctype;
     if (!readHeader())
       throw new ClassFormatError("invalid magic number");
+    readFormatVersion();
     ctype.constants = readConstants();
-    readClassInfo();
-    readFields();
-    readMethods();
-    readAttributes(ctype);
+    //readClassInfo();
+		//readInterfaces();
+    //readFields();
+    //readMethods();
+    //readAttributes(ctype);
+		close();
   }
  
   /** Read a class (in .class format) from an InputStream.
@@ -45,14 +49,35 @@ public class ClassFileInput extends DataInputStream
     new ClassFileInput(ctype, str);
     return ctype;
   }
+	
+  public static ClassFileInput readClassBase (ClassType ctype)
+  {
+		try
+			{
+				String name = ctype.getClass().getName();
+				String entryName = name.replace('.','/')+".class";
+				ClassLoader cLoader = ctype.getClass().getClassLoader();
+				InputStream i = cLoader.getResourceAsStream(entryName);
+				System.out.println("--> name = " + name + " inputStream = " + i);
+				if (i == null)
+					throw new Error("entryName not found : " + entryName);	
 
+				ClassFileInput clas = new ClassFileInput(ctype, i);
+				return clas;
+			}
+		catch (Exception ex)
+			{
+				throw new InternalError(ex.toString());
+			}
+  }
+	
+	/** Read file header for magic number
+		* @return boolean false if magic NOK
+		*/
   public boolean readHeader () throws IOException
   {
     int magic = readInt();
-    if (magic != 0xcafebabe)
-      return false;
-    readFormatVersion();
-    return true;
+    return (magic == 0xcafebabe);
   }
 
   public void readFormatVersion () throws IOException
@@ -88,7 +113,13 @@ public class ClassFileInput extends DataInputStream
 	name = clas.name.string;
 	ctype.setSuper(name.replace('/', '.'));
       }
-
+	}
+	
+	public void readInterfaces () throws IOException
+	{
+    CpoolClass clas;
+    String name;
+		
     int nInterfaces = readUnsignedShort();
     if (nInterfaces > 0)
       {

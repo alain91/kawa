@@ -1,4 +1,3 @@
-// Copyright (c) 2013  Alain Gandon.
 // Copyright (c) 1997, 2004, 2008  Per M.A. Bothner.
 // This is free software;  for terms and warranty disclaimer see ./COPYING.
 
@@ -30,10 +29,10 @@ public class ClassFileInput extends DataInputStream
     if (!readHeader())
       throw new ClassFormatError("invalid magic number");
     ctype.constants = readConstants();
-    //readClassInfo();
-    //readFields();
-    //readMethods();
-    //readAttributes(ctype);
+    readClassInfo();
+    readFields();
+    readMethods();
+    readAttributes(ctype);
   }
  
   /** Read a class (in .class format) from an InputStream.
@@ -47,15 +46,6 @@ public class ClassFileInput extends DataInputStream
     return ctype;
   }
 
-  /**
-	 * Read a class (in .class format) from an InputStream.
-   * @return A new ClassType object representing the class that was read.
-   */
-  public static void readClassBase (ClassType ctype, InputStream str)
-			throws IOException, ClassFormatError
-  {
-    new ClassFileInput(ctype, str);
-  }
   public boolean readHeader () throws IOException
   {
     int magic = readInt();

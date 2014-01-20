@@ -50,20 +50,20 @@ public class ClassFileInput extends DataInputStream
     return ctype;
   }
 	
-  public static ClassFileInput readClassBase (ClassType ctype)
+  public static ClassFileInput readClassBase (String name, ClassType ctype)
   {
 		try
 			{
-				String name = ctype.getClass().getName();
 				String entryName = name.replace('.','/')+".class";
 				ClassLoader cLoader = ctype.getClass().getClassLoader();
 				InputStream i = cLoader.getResourceAsStream(entryName);
-				System.out.println("--> name = " + name + " inputStream = " + i);
-				if (i == null)
-					throw new Error("entryName not found : " + entryName);	
-
-				ClassFileInput clas = new ClassFileInput(ctype, i);
-				return clas;
+				System.err.println("--> name = " + name + " inputStream = " + i);
+				if (i != null)
+				{
+					ClassFileInput clas = new ClassFileInput(ctype, i);
+					return clas;
+				}
+				return null;
 			}
 		catch (Exception ex)
 			{

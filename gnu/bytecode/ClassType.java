@@ -508,7 +508,8 @@ public class ClassType extends ObjectType
   {
     super();
     setName(class_name);
-		initBase();
+		initBase(class_name);
+		System.err.println("Constructor new "+this+" name:"+class_name); 
   }
 
   Field fields;
@@ -1434,34 +1435,9 @@ public class ClassType extends ObjectType
 
   static java.util.HashMap<String,ClassFileInput> mapNameToFileinput = null;
 	
-	private void initBase()
+	private void initBase(String name)
 	{
-		String name = getClass().getName();
-		ClassFileInput i = getNameToFileinput (name);
-		if (i == null)
-		{
-			i = ClassFileInput.readClassBase(this);
-			putNameToFileinput(name, i);
-		}
+		ClassFileInput.readClassBase (name, this);
   }
-	
-	private ClassFileInput getNameToFileinput (String name)
-	{
-		if (mapNameToFileinput == null)
-				mapNameToFileinput = new java.util.HashMap<String,ClassFileInput>();
-		java.util.HashMap<String,ClassFileInput> map = mapNameToFileinput;
-		synchronized (map)
-			{
-				return map.get(name);
-			}
-	}
-	
-	private ClassFileInput putNameToFileinput (String name, ClassFileInput fileInput)
-	{
-		java.util.HashMap<String,ClassFileInput> map = mapNameToFileinput;
-		synchronized (map)
-			{
-				return map.put(name, fileInput);
-			}
-	}
+
 }

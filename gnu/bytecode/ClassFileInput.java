@@ -31,8 +31,8 @@ public class ClassFileInput extends DataInputStream
       throw new ClassFormatError("invalid magic number");
     readFormatVersion();
     ctype.constants = readConstants();
-    //readClassInfo();
-		//readInterfaces();
+    readClassInfo();
+		readInterfaces();
     //readFields();
     //readMethods();
     //readAttributes(ctype);
@@ -57,7 +57,7 @@ public class ClassFileInput extends DataInputStream
 				String entryName = name.replace('.','/')+".class";
 				ClassLoader cLoader = ctype.getClass().getClassLoader();
 				InputStream i = cLoader.getResourceAsStream(entryName);
-				System.err.println("--> name = " + name + " inputStream = " + i);
+				System.err.println("--> name: " + name + ", inputStream: " + i);
 				if (i != null)
 				{
 					ClassFileInput clas = new ClassFileInput(ctype, i);
@@ -132,6 +132,7 @@ public class ClassFileInput extends DataInputStream
 	    clas = (CpoolClass) ctype.constants.getForced(index,
 							  ConstantPool.CLASS);
 	    name = clas.name.string.replace('/', '.');
+			System.err.println("--> Interfaces Make name: "+name);
 	    ctype.interfaces[i] = ClassType.make(name);
 	  }
       }

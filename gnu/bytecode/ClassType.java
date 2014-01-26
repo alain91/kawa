@@ -5,8 +5,6 @@
 package gnu.bytecode;
 import java.io.*;
 import java.util.*;
-import java.util.jar.*;
-import java.util.zip.*;
 
 public class ClassType extends ObjectType 
   implements AttrContainer, Externalizable, Member
@@ -91,10 +89,15 @@ public class ClassType extends ObjectType
 
   ConstantPool constants;
 
-  public final ConstantPool getConstants () { return constants; }
+  public final ConstantPool getConstants ()
+  {
+	  System.err.println("getConstants() this:"+getName());
+	  return constants;
+  }
 
   public final CpoolEntry getConstant(int i)
   {
+	  System.err.println("getConstant this:"+getName());
     if (constants == null || constants.pool == null
 	|| i > constants.count)
       return null;
@@ -104,22 +107,35 @@ public class ClassType extends ObjectType
   /** Return the modifiers (access flags) for this class. */
   public final synchronized int getModifiers()
   {
+	  System.err.println("getModifiers() this:"+getName());
     if (access_flags == 0
 	&& (flags & EXISTING_CLASS) != 0 && getReflectClass() != null)
       access_flags = reflectClass.getModifiers();
     return access_flags;
   }
 
-  public final boolean getStaticFlag () {
+  public final boolean getStaticFlag ()
+  {
+	  System.err.println("getStaticFlag() this:"+getName());
     return (getModifiers() & Access.STATIC) != 0;
   }
 
   /** Set the modifiers (access flags) for this class. */
-  public final void setModifiers(int flags) { access_flags = flags; }
-  public final void addModifiers(int flags) { access_flags |= flags; }
+  public final void setModifiers(int flags)
+  {
+	  System.err.println("setModifiers this:"+getName());
+	  access_flags = flags;
+  }
+  
+  public final void addModifiers(int flags)
+  {
+	  System.err.println("addModifiers this:"+getName());
+	  access_flags |= flags;
+  }
 
   public synchronized String getSimpleName ()
   {
+	  System.err.println("getSimpleName this:"+getName());
     /* #ifdef JAVA5 */
     if ((flags & EXISTING_CLASS) != 0 && getReflectClass() != null)
       {
@@ -149,6 +165,7 @@ public class ClassType extends ObjectType
 
   public void addMemberClass (ClassType member)
   {
+	  System.err.println("addMemberClass:"+member+" this"+getName());
     ClassType prev = null;
     ClassType entry = firstInnerClass;
     while (entry != null)
@@ -166,6 +183,7 @@ public class ClassType extends ObjectType
 
   public ClassType getDeclaredClass (String simpleName)
   {
+	  System.err.println("getDeclaredClass:"+simpleName+" this"+getName());
     addMemberClasses();
     for (ClassType member = firstInnerClass;  member != null;
          member = member.nextInnerClass)
@@ -182,6 +200,7 @@ public class ClassType extends ObjectType
   Member enclosingMember;
   public ClassType getDeclaringClass()
   {
+	  System.err.println("getDeclaringClass this:"+getName());
     addEnclosingMember();
     if (enclosingMember instanceof ClassType)
       return (ClassType) enclosingMember;
@@ -197,11 +216,13 @@ public class ClassType extends ObjectType
 
   public void setEnclosingMember (Member member)
   {
+	  System.err.println("getEnclosingMember:"+member+" this:"+getName());
     enclosingMember = member;
   }
 
   synchronized void addEnclosingMember ()
   {
+	  System.err.println("addEnclosingMember this:"+getName());
     if ((flags & (ADD_ENCLOSING_DONE|EXISTING_CLASS)) != EXISTING_CLASS)
       return;
     Class clas = getReflectClass();
@@ -237,6 +258,7 @@ public class ClassType extends ObjectType
 
   public synchronized void addMemberClasses ()
   {
+	  System.err.println("addMemberClasses this:"+getName());
     if ((flags & (ADD_MEMBERCLASSES_DONE|EXISTING_CLASS)) != EXISTING_CLASS)
       return;
     Class clas = getReflectClass();
@@ -255,12 +277,14 @@ public class ClassType extends ObjectType
 
   public final boolean hasOuterLink ()
   {
+	  System.err.println("hasOuterLink this:"+getName());
     getFields();
     return (flags & HAS_OUTER_LINK) != 0;
   }
 
   public ClassType getOuterLinkType ()
   {
+	  System.err.println("getOuterLinkType this:"+getName());
     return ! hasOuterLink() ? null
       : (ClassType) getDeclaredField("this$0").getType();
   }
@@ -273,6 +297,7 @@ public class ClassType extends ObjectType
    */
   public final Field setOuterLink (ClassType outer)
   {
+	  System.err.println("setOuterLink this:"+getName());
     if ((flags & EXISTING_CLASS) != 0)
       throw new Error("setOuterLink called for existing class "+getName());
     Field field = getDeclaredField("this$0");
@@ -323,6 +348,7 @@ public class ClassType extends ObjectType
   public boolean isAccessible (ClassType declaring,
                                ObjectType receiver, int modifiers)
   {
+	  System.err.println("isAccessible this:"+getName());
     int cmods = declaring.getModifiers();
     // Fast, hopefully-common case.
     if ((modifiers & Access.PUBLIC) != 0 && (cmods & Access.PUBLIC) != 0)
@@ -354,11 +380,13 @@ public class ClassType extends ObjectType
    */
   public void setName (String name)
   {
+	  System.err.println("setName:"+name+" this:"+getName());
     this_name = name;
     setSignature(nameToSignature(name));
   }
 
-    public static String nameToSignature(String name) {
+    public static String nameToSignature(String name)
+    {
         return "L"+name.replace('.', '/')+";";
     }
 
@@ -369,6 +397,7 @@ public class ClassType extends ObjectType
    * such as "JSP", "Scheme", or "Java" (the default). */
   public void setStratum (String stratum)
   {
+	  System.err.println("setStratum:"+stratum+" this:"+getName());
     if (sourceDbgExt == null)
       sourceDbgExt = new SourceDebugExtAttr(this);
     sourceDbgExt.addStratum(stratum);
@@ -377,6 +406,7 @@ public class ClassType extends ObjectType
   /** Set the name of the SourceFile associated with this class. */
   public void setSourceFile (String name)
   {
+	  System.err.println("setSourceFile:"+name+" this:"+getName());
     if (sourceDbgExt != null)
       {
 	sourceDbgExt.addFile(name);
@@ -393,7 +423,9 @@ public class ClassType extends ObjectType
 
     TypeVariable[] typeParameters;
 
-    public TypeVariable[] getTypeParameters() {
+  public TypeVariable[] getTypeParameters()
+  {
+	  System.err.println("getTypeParameters this:"+getName());
 	TypeVariable[] params = typeParameters;
 	if (params == null && (flags & EXISTING_CLASS) != 0
 	    && getReflectClass() != null) {
@@ -415,7 +447,8 @@ public class ClassType extends ObjectType
    */
   public void setSuper (String name)
   {
-    setSuper(name == null ? Type.pointer_type : ClassType.make(name));
+	  System.err.println("setSuper:"+name+" this:"+getName());
+    setSuper(name == null ? Type.javalangObjectType : ClassType.make(name));
   }
 
   public void setSuper (ClassType superClass)
@@ -425,6 +458,7 @@ public class ClassType extends ObjectType
 
   public synchronized ClassType getSuperclass ()
   {
+	  System.err.println("getSuperclass this:"+getName());
     if (superClass == null
 	&& ! isInterface()
 	&& ! ("java.lang.Object".equals(getName()))
@@ -437,6 +471,7 @@ public class ClassType extends ObjectType
 
   public String getPackageName()
   {
+	  System.err.println("getPackageName this:"+getName());
     String name = getName();
     int index = name.lastIndexOf('.');
     return index < 0 ? "" : name.substring(0, index);
@@ -448,6 +483,7 @@ public class ClassType extends ObjectType
    */
   public synchronized ClassType[] getInterfaces()
   {
+	  System.err.println("getInterfaces this:"+getName());
     if (interfaces == null
 	&& (flags & EXISTING_CLASS) != 0 && getReflectClass() != null)
       {
@@ -463,11 +499,15 @@ public class ClassType extends ObjectType
   }
 
   public void setInterfaces (ClassType[] interfaces)
-  { this.interfaces = interfaces; }
+  {
+	  System.err.println("setInterfaces this:"+getName());
+	  this.interfaces = interfaces;
+  }
 
   /** Add an interface to the list of implemented interfaces. */
   public void addInterface (ClassType newInterface)
   {
+	  System.err.println("addInterface "+this.getName());
     int oldCount;
     if (interfaces == null || interfaces.length == 0)
       {
@@ -488,19 +528,27 @@ public class ClassType extends ObjectType
   }
 
   public final boolean isInterface()
-  { return (getModifiers() & Access.INTERFACE) != 0; }
+  {
+	  System.err.println("isInterface this:"+getName());
+	  return (getModifiers() & Access.INTERFACE) != 0;
+  }
 
   public final void setInterface(boolean val)
   {
+	  System.err.println("setInterface this:"+getName());
     if (val) access_flags |= Access.INTERFACE|Access.ABSTRACT;
     else access_flags &= ~Access.INTERFACE|Access.ABSTRACT;
   }
 
   public final boolean isFinal ()
-  { return (getModifiers() & Access.FINAL) != 0; }
+  {
+	  return (getModifiers() & Access.FINAL) != 0;
+  }
 
   public final boolean isAnnotation ()
-  { return (getModifiers() & Access.ANNOTATION) != 0; }
+  {
+	  return (getModifiers() & Access.ANNOTATION) != 0;
+  }
 
   public ClassType () { }
 
@@ -509,7 +557,13 @@ public class ClassType extends ObjectType
     super();
     setName(class_name);
 		initBase(class_name);
-		System.err.println("Constructor new "+this+" name:"+class_name); 
+		System.err.println("Constructor new:"+this+", name:"+class_name); 
+  }
+	
+  private ClassFileInput classFileInput = null;
+  private void initBase(String name)
+  {
+	classFileInput = ClassFileInput.readClassBase (name, this);
   }
 
   Field fields;
@@ -530,6 +584,7 @@ public class ClassType extends ObjectType
   /** Get the fields of this class. */
   public final synchronized Field getFields()
   {
+	  System.err.println("getFields this:"+getName());
     if ((flags & (ADD_FIELDS_DONE|EXISTING_CLASS)) == EXISTING_CLASS)
       addFields();
     return fields;
@@ -561,6 +616,7 @@ public class ClassType extends ObjectType
    */
   public synchronized Field getField(String name, int mask)
   {
+	  System.err.println("getField:"+name+" this:"+getName());
     ClassType cl = this;
     for (;;)
       {
@@ -595,23 +651,29 @@ public class ClassType extends ObjectType
   /**
    * Add a new field to this class.
    */
-  public Field addField () { return new Field (this); }
+  public Field addField ()
+  {
+	  System.err.println("addField() this:"+getName());
+	  return new Field (this);
+  }
 
   /**
    * Add a new field to this class, and name the field.
    * @param name the name of the new field
    */
-  public Field addField (String name) {
-    Field field = new Field (this);
+  public Field addField (String name)
+  {
+	  System.err.println("addField:"+name+" this:"+getName());
+    Field field = addField ();
     field.setName(name);
     return field;
   }
 
-  public final Field addField (String name, Type type) {
-    Field field = new Field (this);
-    field.setName(name);
+  public final Field addField (String name, Type type)
+  {
+    Field field = addField (name);
     field.setType(type);
-    return field;
+    return field; 
   }
 
   public final Field addField (String name, Type type, int flags)
@@ -625,8 +687,9 @@ public class ClassType extends ObjectType
    * Does not add private or package-private fields.
    * Does not check for duplicate (already-known) fields.
    * Is not thread-safe if another thread may access this ClassType. */
-  public synchronized void addFields()
+  public synchronized void addFields ()
   {
+	  System.err.println("addFields "+getName());
     Class clas = getReflectClass();
     java.lang.reflect.Field[] fields;
     try
@@ -655,24 +718,31 @@ public class ClassType extends ObjectType
   public Method constructor;
 
   /** Get the methods of this class. */
-  public final Method getMethods()
+  public final Method getMethods ()
   {
+	  System.err.println("getMethods this:"+getName());
     return methods;
   }
 
-  public final int getMethodCount() {
+  public final int getMethodCount ()
+  {
+	  System.err.println("getMethods this:"+getName());
     return methods_count;
   }
  
-  Method addMethod () {
+  Method addMethod ()
+  {
+	  System.err.println("addMethod this:"+getName());
     return new Method (this, 0);
   }
 
-  public Method addMethod (String name) {
+  public Method addMethod (String name)
+  {
     return addMethod(name, 0);
   }
 
-  public Method addMethod (String name, int flags) {
+  public Method addMethod (String name, int flags)
+  {
     Method method = new Method (this, flags);
     method.setName(name);
     return method;
@@ -681,7 +751,8 @@ public class ClassType extends ObjectType
   // deprecated:
   public Method addMethod (String name,
 			   Type[] arg_types, Type return_type,
-			   int flags) {
+			   int flags)
+  {
     return addMethod(name, flags, arg_types, return_type);
   }
 
@@ -692,6 +763,7 @@ public class ClassType extends ObjectType
   public synchronized Method addMethod (String name, int flags,
 			   Type[] arg_types, Type return_type)
   {
+	  System.err.println("addMethod(name):"+name+" this:"+getName());
     Method method = getDeclaredMethod(name, arg_types);
     if (method != null
         && return_type.equals(method.getReturnType())
@@ -705,6 +777,7 @@ public class ClassType extends ObjectType
 
   public Method addMethod (java.lang.reflect.Method method)
   {
+	  System.err.println("addMethod(Method):"+method+" this:"+getName());
     int modifiers = method.getModifiers();
     Class[] paramTypes = method.getParameterTypes();
     java.lang.reflect.Type[] gparamTypes = method.getGenericParameterTypes();
@@ -718,6 +791,7 @@ public class ClassType extends ObjectType
 
   public Method addMethod (java.lang.reflect.Constructor method)
   {
+	  System.err.println("addMethod(Constructor):"+method+" this:"+getName());
     Class[] paramTypes = method.getParameterTypes();
     int modifiers = method.getModifiers();
     int j = paramTypes.length;
@@ -729,6 +803,7 @@ public class ClassType extends ObjectType
 
   public Method addMethod (String name,  String signature, int flags)
   {
+	  System.err.println("addMethod(name):"+name+" this:"+getName());
     Method meth = addMethod(name, flags);
     meth.setSignature(signature);
     return meth;
@@ -739,6 +814,7 @@ public class ClassType extends ObjectType
     * a new one. */
   public Method getMethod (java.lang.reflect.Method method)
   {
+	  System.err.println("addMethod(Method):"+method+" this:"+getName());
     String name = method.getName();
     Class[] parameterClasses = method.getParameterTypes();
     Type[] parameterTypes = new Type[parameterClasses.length];
@@ -750,6 +826,7 @@ public class ClassType extends ObjectType
 
   public final synchronized Method getDeclaredMethods()
   {
+	  System.err.println("getDeclaredMethods this:"+getName());
     if ((flags & (ADD_METHODS_DONE|EXISTING_CLASS)) == EXISTING_CLASS)
       addMethods(getReflectClass());
     return methods;
@@ -764,6 +841,7 @@ public class ClassType extends ObjectType
    */
   public final int countMethods (Filter filter, int searchSupers)
   {
+	  System.err.println("countMethods this:"+getName());
     Vector vec = new Vector();
     getMethods(filter, searchSupers, vec);
     return vec.size();
@@ -771,6 +849,7 @@ public class ClassType extends ObjectType
 
   public Method[] getMethods (Filter filter, boolean searchSupers)
   {
+	  System.err.println("getMethods2 this:"+getName());
     return getMethods(filter, searchSupers ? 1 : 0);
   }
 
@@ -783,6 +862,7 @@ public class ClassType extends ObjectType
    */
   public Method[] getMethods (Filter filter, int searchSupers)
   {
+	  System.err.println("getMethods this:"+getName());
     Vector<Method> vec = new Vector();
     getMethods(filter, searchSupers, vec);
     int count = vec.size();
@@ -805,6 +885,7 @@ public class ClassType extends ObjectType
   public int getMethods (Filter filter, int searchSupers,
 			 Method[] result, int offset)
   {
+	  System.err.println("getMethods this:"+getName());
     Vector<Method> vec = new Vector<Method>();
     getMethods(filter, searchSupers, vec);
     int count = vec.size();
@@ -829,6 +910,7 @@ public class ClassType extends ObjectType
                          /* #endif */
                          result)
   {
+	  System.err.println("getMethods2 this:"+getName());
     int count = 0;
     String inheritingPackage = null;
     for (ClassType ctype = this;  ctype != null;
@@ -894,6 +976,7 @@ public class ClassType extends ObjectType
 
   public Method[] getAbstractMethods ()
   {
+	  System.err.println("getAbstractMethods this:"+getName());
     return getMethods(AbstractMethodFilter.instance, 2);
   }
 
@@ -906,6 +989,7 @@ public class ClassType extends ObjectType
    */
   public Method getDeclaredMethod(String name, Type[] arg_types)
   {
+	  System.err.println("getDeclaredMethod:"+name+" this:"+getName());
     int needOuterLinkArg = "<init>".equals(name) && hasOuterLink() ? 1 : 0;
     for (Method method = getDeclaredMethods();
 	 method != null;  method = method.next)
@@ -938,6 +1022,7 @@ public class ClassType extends ObjectType
 
   synchronized Method getDeclaredMethod(String name, boolean mustBeStatic, int argCount)
   {
+	  System.err.println("getDeclaredMethod2:"+name+" this:"+getName());
     Method result = null;
     int needOuterLinkArg = "<init>".equals(name) && hasOuterLink() ? 1 : 0;
     for (Method method = getDeclaredMethods();
@@ -975,6 +1060,7 @@ public class ClassType extends ObjectType
    */
   public synchronized Method getMethod(String name, Type[] arg_types)
   {
+	  System.err.println("getMethod:"+name+" this:"+getName());
     ClassType cl = this;
     for (;;)
       {
@@ -1008,6 +1094,7 @@ public class ClassType extends ObjectType
 
   public Method getDefaultConstructor ()
   {
+	  System.err.println("getDefaultConstructor this:"+getName());
     return getDeclaredMethod("<init>", Type.typeArray0);
   }
 
@@ -1017,6 +1104,7 @@ public class ClassType extends ObjectType
    * @param clas should be the same as getReflectClass(). */
   public synchronized void addMethods(Class clas)
   {
+	  System.err.println("addMethods:"+clas+" this:"+getName());
     // Set this flag BEFORE the actual addition.
     // This prevents this method to be called indirectly for the same class
     // while it is executed, which would result in methods being listed
@@ -1062,6 +1150,7 @@ public class ClassType extends ObjectType
 
   public Method[] getMatchingMethods(String name, Type[] paramTypes, int flags)
   {
+	  System.err.println("getMatchingMethods:"+name+" this:"+getName());
     int nMatches = 0;
     java.util.Vector matches = new java.util.Vector(10);
     for (Method method = methods;  method != null;  method = method.getNext())
@@ -1088,6 +1177,7 @@ public class ClassType extends ObjectType
    * finalizing labels, etc. */
   public void doFixups ()
   {
+	  System.err.println("doFixups this:"+getName());
     if (constants == null)
       constants = new ConstantPool();
     if (thisClassIndex == 0)
@@ -1165,6 +1255,7 @@ public class ClassType extends ObjectType
   public void writeToStream (OutputStream stream)
     throws java.io.IOException
   {
+	  System.err.println("writeToStream this:"+getName());
     java.io.DataOutputStream dstr = new java.io.DataOutputStream (stream);
     int i;
 
@@ -1209,6 +1300,7 @@ public class ClassType extends ObjectType
   public void writeToFile (String filename)
     throws java.io.IOException
  {
+	  System.err.println("writeToFile "+this.getName());
     OutputStream stream
       = new BufferedOutputStream(new FileOutputStream (filename));
     writeToStream (stream);
@@ -1218,11 +1310,13 @@ public class ClassType extends ObjectType
   public void writeToFile ()
     throws java.io.IOException
   {
+	  System.err.println("writeToFile "+this.getName());
     writeToFile (this_name.replace ('.', File.separatorChar) + ".class");
   }
 
   public byte[] writeToArray ()
   {
+	  System.err.println("writeToArray this:"+getName());
     ByteArrayOutputStream stream = new ByteArrayOutputStream (500);
     try
       {
@@ -1276,6 +1370,7 @@ public class ClassType extends ObjectType
   /** True if this class/interface implements the interface iface. */
   public final boolean implementsInterface(ClassType iface)
   {
+	  System.err.println("implementsInterface this:"+getName());
     if (this == iface)
       return true;
     ClassType baseClass = this.getSuperclass();
@@ -1299,6 +1394,7 @@ public class ClassType extends ObjectType
    */
   public final boolean isSubclass (String cname)
   {
+	  System.err.println("isSubclass:"+cname+" this:"+getName());
     ClassType ctype = this;
     for (;;)
       {
@@ -1312,6 +1408,7 @@ public class ClassType extends ObjectType
 
   public final boolean isSubclass(ClassType other)
   {
+	  System.err.println("isSubclass:"+other+" this:"+getName());
     if (other.isInterface())
       return implementsInterface(other);
     if ((this == toStringType && other == javalangStringType)
@@ -1331,6 +1428,7 @@ public class ClassType extends ObjectType
 
   public int compare(Type other)
   {
+	  System.err.println("compare:"+other+" this:"+getName());
     if (other == nullType)
       return 1;
     if (! (other instanceof ClassType))
@@ -1378,6 +1476,7 @@ public class ClassType extends ObjectType
 
   public Object readResolve() throws ObjectStreamException
   {
+	  System.err.println("readResolve this:"+getName());
     String name = getName();
     /* #ifdef JAVA5 */
     java.util.HashMap<String,Type> map = mapNameToType;
@@ -1414,6 +1513,7 @@ public class ClassType extends ObjectType
    */
   public Method checkSingleAbstractMethod ()
   {
+	  System.err.println("checkSingleAbstractMethod this:"+getName());
     Method[] methods = getAbstractMethods();
     int nmethods = methods.length;
     Method result = null;
@@ -1431,13 +1531,6 @@ public class ClassType extends ObjectType
         result = meth;
       }
     return result;
-  }
-
-  static java.util.HashMap<String,ClassFileInput> mapNameToFileinput = null;
-	
-	private void initBase(String name)
-	{
-		ClassFileInput.readClassBase (name, this);
   }
 
 }

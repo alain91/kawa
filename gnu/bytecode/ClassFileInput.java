@@ -1,4 +1,4 @@
-// Copyright (c) 2013  Alain Gandon.
+// Copyright (c) 2014  Alain Gandon.
 // Copyright (c) 1997, 2004, 2008  Per M.A. Bothner.
 // This is free software;  for terms and warranty disclaimer see ./COPYING.
 
@@ -26,22 +26,25 @@ public class ClassFileInput extends DataInputStream
        throws IOException, ClassFormatError
   {
     super(str);
+            System.err.println("--> inputStream BEGIN");
     this.ctype = ctype;
     if (!readHeader())
       throw new ClassFormatError("invalid magic number");
-    readFormatVersion();
-    ctype.constants = readConstants();
-    //readClassInfo();
-		//readInterfaces();
-    //readFields();
-    //readMethods();
-    //readAttributes(ctype);
-		close();
+    ctype.classfileFormatVersion = readFormatVersion();
+    ctype.constants = initConstants();
+    readClassInfo();
+    readInterfaces();
+    readFields();
+    // readMethods();
+    // readAttributes(ctype);
+    close();
+        System.err.println("--> inputStream END");
   }
  
   /** Read a class (in .class format) from an InputStream.
     * @return A new ClassType object representing the class that was read.
     */
+  /*
   public static ClassType readClassType (InputStream str)
        throws IOException, ClassFormatError
   {
@@ -49,26 +52,25 @@ public class ClassFileInput extends DataInputStream
     new ClassFileInput(ctype, str);
     return ctype;
   }
+  */
 	
   public static ClassFileInput readClassBase (String name, ClassType ctype)
+          throws IOException
   {
-		try
-			{
-				String entryName = name.replace('.','/')+".class";
-				ClassLoader cLoader = ctype.getClass().getClassLoader();
-				InputStream i = cLoader.getResourceAsStream(entryName);
-				System.err.println("--> name = " + name + " inputStream = " + i);
-				if (i != null)
-				{
-					ClassFileInput clas = new ClassFileInput(ctype, i);
-					return clas;
-				}
-				return null;
-			}
-		catch (Exception ex)
-			{
-				throw new InternalError(ex.toString());
-			}
+    try
+      {
+        String entryName = name.replace('.','/')+".class";
+        ClassLoader cLoader = ctype.getClass().getClassLoader();
+        InputStream i = cLoader.getResourceAsStream(entryName);
+        if (i == null) return null;
+        System.err.println("--> name:"+name);
+        ClassFileInput clas = new ClassFileInput(ctype, i);
+        return clas;
+      }
+    catch (Exception ex)
+      {
+          throw new InternalError(ex.toString());
+      }
   }
 	
 	/** Read file header for magic number
@@ -80,14 +82,14 @@ public class ClassFileInput extends DataInputStream
     return (magic == 0xcafebabe);
   }
 
-  public void readFormatVersion () throws IOException
+  public int readFormatVersion () throws IOException
   {
     int minor = readUnsignedShort();
     int major = readUnsignedShort();
-    ctype.classfileFormatVersion = major * 0x10000 + minor;
+    return (major * 0x10000 + minor);
   }
 
-  public ConstantPool readConstants () throws IOException
+  public ConstantPool initConstants () throws IOException
   {
     return new ConstantPool(this);
   }
@@ -141,6 +143,7 @@ public class ClassFileInput extends DataInputStream
   {
     int count = readUnsignedShort();
     Attribute last = container.getAttributes();
+
     for (int i = 0;  i < count;  i++)
       {
 	if (last != null)
@@ -153,8 +156,8 @@ public class ClassFileInput extends DataInputStream
 		last = next;
 	      }
 	  }
-	
 	int index = readUnsignedShort();
+  CpoolEntry entry = ctype.constants.getPoolEntry(index);
 	CpoolUtf8 nameConstant = (CpoolUtf8)
 	  ctype.constants.getForced(index, ConstantPool.UTF8);
 	int length = readInt();
@@ -204,10 +207,12 @@ public class ClassFileInput extends DataInputStream
   {
     if (name == "SourceFile" && container instanceof ClassType)
       {
+  System.err.println("SourceFileAttr");
 	return new SourceFileAttr(readUnsignedShort(), (ClassType) container);
       }
     else if (name == "Code" && container instanceof Method)
       {
+  System.err.println("CodeAttr");
         CodeAttr code = new CodeAttr((Method) container);
         code.fixup_count = -1;
 	code.setMaxStack(readUnsignedShort());
@@ -230,7 +235,8 @@ public class ClassFileInput extends DataInputStream
       }
     else if (name == "LineNumberTable" && container instanceof CodeAttr)
       {
-        int count = 2 * readUnsignedShort();
+        System.err.println("LineNumbersAttr");
+  int count = 2 * readUnsignedShort();
 	short[] numbers = new short[count];
 	for (int i = 0;  i < count;  i++)
 	  {
@@ -240,6 +246,7 @@ public class ClassFileInput extends DataInputStream
       }
     else if (name == "LocalVariableTable" && container instanceof CodeAttr)
       {
+        System.err.println("LocalVarsAttr");
 	CodeAttr code = (CodeAttr) container;
 	LocalVarsAttr attr = new LocalVarsAttr(code);
 	Method method = attr.getMethod();
@@ -249,7 +256,7 @@ public class ClassFileInput extends DataInputStream
 	if (scope.end == null)
 	  scope.end = new Label(code.PC);
 	ConstantPool constants = method.getConstants();
-        int count = readUnsignedShort();
+  int count = readUnsignedShort();
 	int prev_start = scope.start.position;
 	int prev_end = scope.end.position;
 	for (int i = 0;  i < count;  i++)
@@ -279,10 +286,12 @@ public class ClassFileInput extends DataInputStream
       }
     else if (name == "Signature" && container instanceof Member)
       {
+              System.err.println("SignatureAttr");
 	return new SignatureAttr(readUnsignedShort(), (Member) container);
       }
     else if (name == "StackMapTable" && container instanceof CodeAttr)
       {
+        System.err.println("StackMapTableAttr");
         byte[] data = new byte[length];
         readFully(data, 0, length);
         return new StackMapTableAttr(data, (CodeAttr) container);
@@ -293,6 +302,7 @@ public class ClassFileInput extends DataInputStream
                  || container instanceof Method
                  || container instanceof ClassType))
       {
+              System.err.println("RuntimeAnnotationsAttr");
         int numEntries = readUnsignedShort();
         AnnotationEntry[] entries = new AnnotationEntry[numEntries];
         for (int i = 0;  i < numEntries; i++)
@@ -303,10 +313,12 @@ public class ClassFileInput extends DataInputStream
       }
     else if (name == "ConstantValue" && container instanceof Field)
       {
+      System.err.println("ConstantValueAttr");
 	return new ConstantValueAttr(readUnsignedShort());
       }
     else if (name == "InnerClasses" && container instanceof ClassType)
       {
+            System.err.println("InnerClassesAttr");
         int count = 4 * readUnsignedShort();
 	short[] data = new short[count]; 
 	for (int i = 0;  i < count;  i++)
@@ -317,12 +329,14 @@ public class ClassFileInput extends DataInputStream
      }
     else if (name == "EnclosingMethod" && container instanceof ClassType)
       {
+      System.err.println("EnclosingMethodAttr");
         int class_index = readUnsignedShort();
         int method_index = readUnsignedShort();
 	return new EnclosingMethodAttr(class_index, method_index, (ClassType) container);
      }
     else if (name == "Exceptions" && container instanceof Method)
       {
+      System.err.println("getExceptionAttr");
 	Method meth = (Method)container;
 	int count = readUnsignedShort();
         short[] exn_indices = new short[count];
@@ -333,6 +347,7 @@ public class ClassFileInput extends DataInputStream
       }
     else if (name == "SourceDebugExtension" && container instanceof ClassType)
       {
+      System.err.println("SourceDebugExtAttr");
 	SourceDebugExtAttr attr
 	  = new SourceDebugExtAttr((ClassType) container);
 	byte[] data = new byte[length];
@@ -343,11 +358,13 @@ public class ClassFileInput extends DataInputStream
       }
     else if (name == "AnnotationDefault" && container instanceof Method)
       {
+      System.err.println("AnnotationDefaultAttr");
         AnnotationEntry.Value value = RuntimeAnnotationsAttr.readAnnotationValue(this, container.getConstants());
         return new AnnotationDefaultAttr(name, value, container);
       }
     else
       {
+      System.err.println("MiscAttr");
 	byte[] data = new byte[length];
 	readFully(data, 0, length);
 	return new MiscAttr(name, data);
@@ -358,16 +375,25 @@ public class ClassFileInput extends DataInputStream
   {
     int nFields = readUnsignedShort();
     ConstantPool constants = ctype.constants;
+
     for (int i = 0;  i < nFields;  i++)
       {
 	int flags = readUnsignedShort();
 	int nameIndex = readUnsignedShort();
 	int descriptorIndex = readUnsignedShort();
-	Field fld = ctype.addField();
-	fld.setName(nameIndex, constants);
-	fld.setSignature(descriptorIndex, constants);
-	fld.flags = flags;
-	readAttributes(fld);
+  CpoolEntry entry = constants.getPoolEntry(nameIndex);
+  int tag = 0;
+  if (entry != null)
+    tag = entry.getTag();
+  System.err.println("readField i:"+i+", nFields:"+nFields+", tag:"+tag);
+  /*
+
+    Field fld = ctype.addField();
+    fld.setName(nameIndex, constants);
+    fld.setSignature(descriptorIndex, constants);
+    fld.flags = flags;
+    readAttributes(fld);
+  */
       }
   }
 

@@ -178,7 +178,7 @@ public abstract class Type
 	    }
 	}
 	if (type instanceof java.lang.reflect.TypeVariable) {
-	    return TypeVariable.make((java.lang.reflect.TypeVariable) type);
+	    return TypeVariable.make((java.lang.reflect.TypeVariable<?>) type);
 	}
 	return null;
     }
@@ -689,12 +689,12 @@ public abstract class Type
   protected Class reflectClass;
 
   /** Get the java.lang.Class object for the representation type. */
-  public java.lang.Class getReflectClass()
+  public Class getReflectClass()
   {
     return reflectClass;
   }
 
-  public void setReflectClass(java.lang.Class rclass)
+  public void setReflectClass(Class rclass)
   {
     reflectClass = rclass;
   }

@@ -530,7 +530,13 @@ public class ClassType extends ObjectType
   {
     super();
     setName(class_name);
+    try
+      {
     initBase(class_name);
+      }
+    catch (Exception ex)
+      {
+      }
   }
 
   Field fields;
@@ -1457,6 +1463,7 @@ public class ClassType extends ObjectType
   static ClassFileInput classFileInput;
 
   private void initBase(String name)
+      throws IOException
   {
     classFileInput = ClassFileInput.readClassBase (name, this);
   }

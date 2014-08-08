@@ -328,7 +328,7 @@ public class ConstantPool
 	entry.index = index;
       }
     else if (entry.getTag() != tag)
-      throw new ClassFormatError("conflicting constant pool tags at "+index);
+      throw new ClassFormatError("conflicting constant pool tags at "+index+"entyTag"+entry.getTag()+", tag"+tag);
     return entry;
   }
 
@@ -346,7 +346,7 @@ public class ConstantPool
     pool = new CpoolEntry[count+1];
     for (int i = 1;  i <= count;  i++)
       {
-	byte tag = dstr.readByte();
+	int tag = dstr.readUnsignedByte();
 	CpoolEntry entry = getForced(i, tag);
 	switch (tag)
 	  {
@@ -360,7 +360,7 @@ public class ConstantPool
 	  case LONG:
 	  case DOUBLE:
 	    ((CpoolValue2) entry).value = dstr.readLong();
-	    i++;
+	    i++; // skip next index (specific for LONG and DOUBLE)
 	    break;
 	  case CLASS:
 	    ((CpoolClass) entry).name =

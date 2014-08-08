@@ -928,11 +928,11 @@ public class InlineCalls extends ExpExpVisitor<Type> {
         || (varArgs && args.length >= fixed))
       {
         Declaration prev = null;
-        IdentityHashTable mapper;
+        IdentityHashTable<Declaration, Declaration> mapper;
         Expression[] cargs;
         if (makeCopy)
           {
-            mapper = new IdentityHashTable();
+            mapper = new IdentityHashTable<Declaration, Declaration>();
             cargs = Expression.deepCopy(args, mapper);
             if (cargs == null && args != null)
               return null;

@@ -469,6 +469,7 @@
            deprecation="${deprecation}"
            optimize="${optimize}"
 	   includeantruntime="false">
+      <!-- <compilerarg line="-Xlint:unchecked" /> -->
       <include name="gnu/bytecode/"/>
       <include name="gnu/commonlisp/lang/"/>
       <include name="gnu/ecmascript/"/>

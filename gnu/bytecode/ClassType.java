@@ -442,12 +442,19 @@ public class ClassType extends ObjectType
    if (superClass == null
 	&& ! isInterface()
 	&& ! ("java.lang.Object".equals(getName()))
-	&& (flags & EXISTING_CLASS) != 0 && getReflectClass() != null)
+	&& (flags & EXISTING_CLASS) != 0
+  && getReflectClass() != null)
       {
 	superClass = (ClassType) make(reflectClass.getSuperclass());
-    if (classFileInput != null) {
-        ClassType superClass2 = classFileInput.ctype.superClass;
-        traceCompare(superClass == superClass2, "getSuperclass");
+  if (classFileInput != null)
+    {
+      CpoolClass clas = classFileInput.getClassConstant(classFileInput.ctype.superClassIndex);
+      String superName = clas.name.string.replace('/', '.');
+      /*
+      System.err.printf("%s - %s valeurs : %s %s %d\n", 
+        "getSuperclass", getName(), superClass.getName(), superName, classFileInput.ctype.superClassIndex);
+      */
+      traceCompare(superClass.getName().equals(superName), "getSuperclass");
     }
       }
     return superClass;
@@ -1457,7 +1464,7 @@ public class ClassType extends ObjectType
     return result;
   }
 
-  static ClassFileInput classFileInput;
+  ClassFileInput classFileInput = null;
 
   private void initBase(String name)
   {

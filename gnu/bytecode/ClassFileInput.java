@@ -102,20 +102,24 @@ public class ClassFileInput
     ctype.access_flags = dis.readUnsignedShort();
 
     ctype.thisClassIndex = dis.readUnsignedShort();
+    /*
     clas = getClassConstant(ctype.thisClassIndex);
     name = clas.name.string;
     ctype.this_name = name.replace('/', '.');
-    // ctype.setSignature("L"+name+";");
+    ctype.setSignature("L"+name+";");
+    */
 
     ctype.superClassIndex = dis.readUnsignedShort();
+    /*
     if (ctype.superClassIndex == 0)
       ctype.setSuper((ClassType) null);
     else
       {
 	clas = getClassConstant(ctype.superClassIndex);
 	name = clas.name.string;
-	// ctype.setSuper(name.replace('/', '.'));
+	ctype.setSuper(name.replace('/', '.'));
       }
+    */
 	}
 
 	public void readInterfaces (DataInputStream dis)
@@ -133,10 +137,12 @@ public class ClassFileInput
 	  {
 	    int index = dis.readUnsignedShort();
 	    ctype.interfaceIndexes[i] = index;
+      /*
 	    clas = (CpoolClass) ctype.constants.getForced(index,
 							  ConstantPool.CLASS);
 	    name = clas.name.string.replace('/', '.');
 	    ctype.interfaces[i] = ClassType.make(name);
+      */
 	  }
       }
   }
@@ -154,10 +160,12 @@ public class ClassFileInput
     int descriptorIndex = dis.readUnsignedShort();
     // System.err.printf ("%s - fields %d - %d: 0x%x\n", cname, i, nFields, flags);
     Field fld = ctype.addField();
+    /*
     fld.setName(nameIndex, constants);
-    // fld.setSignature(descriptorIndex, constants);
+    fld.setSignature(descriptorIndex, constants);
     fld.signature_index = descriptorIndex;
     fld.flags = flags;
+    */
     readAttributes(dis, fld);
       }
   }
@@ -173,9 +181,11 @@ public class ClassFileInput
 	int descriptorIndex = dis.readUnsignedShort();
     // System.err.printf ("%s - methods %d - %d: 0x%x\n", cname, i, nMethods, flags);
 	Method meth = ctype.addMethod(null, flags);
+  /*
 	meth.setName(nameIndex);
-	// meth.setSignature(descriptorIndex);
+	meth.setSignature(descriptorIndex);
   meth.signature_index = descriptorIndex;
+  */
 	readAttributes(dis, meth);
       }
   }
@@ -188,6 +198,7 @@ public class ClassFileInput
 
     for (int i = 0;  i < count;  i++)
       {
+  /*
 	if (last != null)
 	  {
 	    for (;;)
@@ -198,11 +209,16 @@ public class ClassFileInput
 		last = next;
 	      }
 	  }
+  */
 	int index = dis.readUnsignedShort();
+  /*
   CpoolEntry entry = ctype.constants.getPoolEntry(index);
 	CpoolUtf8 nameConstant = (CpoolUtf8)
 	  ctype.constants.getForced(index, ConstantPool.UTF8);
+  */
 	int length = dis.readInt();
+  if (length > 0) dis.skipBytes(length);
+  /*
 	nameConstant.intern();
 	Attribute attr = readAttribute(dis, nameConstant.string, length, container);
 	if (attr != null)
@@ -222,6 +238,7 @@ public class ClassFileInput
 	      }
 	    last = attr;
 	  }
+    */
       }
   }
 
@@ -423,8 +440,14 @@ public class ClassFileInput
   else
     System.err.printf ("%s - constants : %d\n", name, ctype.constants);
   readClassInfo(dis);
-  System.err.printf ("%s - access_flag: 0x%x, thisClassIndex: %d, superClassIndex: %d\n",
-    name, ctype.access_flags, ctype.thisClassIndex, ctype.superClassIndex);
+    String superName = "not defined";
+    if (ctype.superClassIndex > 0)
+      {
+  	CpoolClass clas = getClassConstant(ctype.superClassIndex);
+    superName = clas.name.string.replace('/', '.');
+      }
+  System.err.printf ("%s - access_flag: 0x%x, thisClassIndex: %d, superClassIndex: %d, %s\n",
+    name, ctype.access_flags, ctype.thisClassIndex, ctype.superClassIndex, superName);
   readInterfaces(dis);
   if (ctype.interfaces != null)
     System.err.printf ("%s - interfaces length: %d\n", name, ctype.interfaces.length);

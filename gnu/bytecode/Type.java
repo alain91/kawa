@@ -98,9 +98,9 @@ public abstract class Type
     synchronized (map)
       {
         Type type = (Type) map.get(name);
-        System.err.printf ("GET name: %s, type: %s\n", name, type);
         if (type == null)
           {
+            System.err.printf ("GET name: %s, type: %s\n", name, type);
             if (name.endsWith("[]"))
               type = ArrayType.make(name);
             else

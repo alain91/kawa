@@ -20,6 +20,8 @@ public class ClassType extends ObjectType
 
   // An old but generally valid default value.
   int classfileFormatVersion = JDK_1_1_VERSION;
+  
+  int magic;
 
   public short getClassfileMajorVersion ()
   {
@@ -132,7 +134,6 @@ public class ClassType extends ObjectType
 
   public synchronized String getSimpleName ()
   {
-				System.err.println("--> getSimpleName");
     /* #ifdef JAVA5 */
     if ((flags & EXISTING_CLASS) != 0 && getReflectClass() != null)
       {
@@ -530,13 +531,7 @@ public class ClassType extends ObjectType
   {
     super();
     setName(class_name);
-    try
-      {
     initBase(class_name);
-      }
-    catch (Exception ex)
-      {
-      }
   }
 
   Field fields;
@@ -944,7 +939,7 @@ public class ClassType extends ObjectType
             || (arg_types == method_args && needOuterLinkArg==0))
 	  return method;
 	int i = arg_types.length;
-	if (i != method_args.length-needOuterLinkArg)
+	if (method_args == null || i != method_args.length-needOuterLinkArg)
 	  continue;
 	while (-- i >= 0)
 	  {
@@ -966,10 +961,12 @@ public class ClassType extends ObjectType
   synchronized Method getDeclaredMethod(String name, boolean mustBeStatic, int argCount)
   {
     Method result = null;
+    if (name == null) return null;
     int needOuterLinkArg = "<init>".equals(name) && hasOuterLink() ? 1 : 0;
     for (Method method = getDeclaredMethods();
 	 method != null;  method = method.next)
       {
+        if (method.getParameterTypes() == null) continue;
         if (mustBeStatic && ! method.getStaticFlag())
           continue;
 	if (name.equals(method.getName())
@@ -1463,9 +1460,17 @@ public class ClassType extends ObjectType
   static ClassFileInput classFileInput;
 
   private void initBase(String name)
-      throws IOException
   {
-    classFileInput = ClassFileInput.readClassBase (name, this);
+    try
+      {
+    classFileInput = new ClassFileInput(name, this);
+    if (classFileInput == null) return;
+    classFileInput.check(name);
+      }
+    catch (Exception ex)
+      {
+    throw new InternalError(ex.toString());
+      }
   }
 
 }

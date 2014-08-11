@@ -339,7 +339,7 @@ public class ConstantPool
 
   public ConstantPool () { }
 
-  public ConstantPool (java.io.DataInputStream dstr)
+  public void readConstants(java.io.DataInputStream dstr)
        throws java.io.IOException
   {
     count = dstr.readUnsignedShort() - 1;

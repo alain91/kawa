@@ -98,6 +98,7 @@ public abstract class Type
     synchronized (map)
       {
         Type type = (Type) map.get(name);
+        System.err.printf ("GET name: %s, type: %s\n", name, type);
         if (type == null)
           {
             if (name.endsWith("[]"))
@@ -109,6 +110,7 @@ public abstract class Type
                 type = cl;
               }
             map.put(name, type);
+            System.err.printf ("PUT name: %s, type: %s\n", name, type);
           }
         return type;
       }

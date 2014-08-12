@@ -16,6 +16,8 @@ public abstract class Type
   String genericSignature;
   // Fully-qualified name (in external format, i.e. using '.' to separate).
   String this_name;
+  String thisClassName;
+  String superClassName;
   /**
    * Nominal unpromoted size in bytes.
    */

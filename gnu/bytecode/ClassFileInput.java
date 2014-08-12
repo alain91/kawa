@@ -102,24 +102,22 @@ public class ClassFileInput
     ctype.access_flags = dis.readUnsignedShort();
 
     ctype.thisClassIndex = dis.readUnsignedShort();
-    /*
     clas = getClassConstant(ctype.thisClassIndex);
     name = clas.name.string;
-    ctype.this_name = name.replace('/', '.');
-    ctype.setSignature("L"+name+";");
-    */
+    ctype.this_name = ctype.thisClassName = name.replace('/', '.');
+    // ctype.setSignature("L"+name+";");
 
     ctype.superClassIndex = dis.readUnsignedShort();
-    /*
     if (ctype.superClassIndex == 0)
-      ctype.setSuper((ClassType) null);
+      ctype.superClassName = "";
+      // ctype.setSuper((ClassType) null);
     else
       {
 	clas = getClassConstant(ctype.superClassIndex);
 	name = clas.name.string;
-	ctype.setSuper(name.replace('/', '.'));
+  ctype.superClassName = name.replace('/', '.');
+	// ctype.setSuper(name.replace('/', '.'));
       }
-    */
 	}
 
 	public void readInterfaces (DataInputStream dis)
@@ -137,12 +135,9 @@ public class ClassFileInput
 	  {
 	    int index = dis.readUnsignedShort();
 	    ctype.interfaceIndexes[i] = index;
-      /*
-	    clas = (CpoolClass) ctype.constants.getForced(index,
-							  ConstantPool.CLASS);
+	    clas = getClassConstant(index);
 	    name = clas.name.string.replace('/', '.');
-	    ctype.interfaces[i] = ClassType.make(name);
-      */
+	    // ctype.interfaces[i] = ClassType.make(name);
 	  }
       }
   }
@@ -151,22 +146,19 @@ public class ClassFileInput
       throws IOException
   {
     int nFields = dis.readUnsignedShort();
-    ConstantPool constants = ctype.constants;
-
+  
     for (int i = 0;  i < nFields;  i++)
       {
-    int flags = dis.readUnsignedShort();
-    int nameIndex = dis.readUnsignedShort();
-    int descriptorIndex = dis.readUnsignedShort();
-    // System.err.printf ("%s - fields %d - %d: 0x%x\n", cname, i, nFields, flags);
-    Field fld = ctype.addField();
-    /*
-    fld.setName(nameIndex, constants);
-    fld.setSignature(descriptorIndex, constants);
-    fld.signature_index = descriptorIndex;
-    fld.flags = flags;
-    */
-    readAttributes(dis, fld);
+  int flags = dis.readUnsignedShort();
+  int nameIndex = dis.readUnsignedShort();
+  int descriptorIndex = dis.readUnsignedShort();
+  // System.err.printf ("%s - fields %d - %d: 0x%x\n", cname, i, nFields, flags);
+  Field fld = ctype.addField();
+  fld.setName(nameIndex, ctype.constants);
+  // fld.setSignature(descriptorIndex, ctype.constants);
+  fld.signature_index = descriptorIndex;
+  fld.flags = flags;
+  readAttributes(dis, fld);
       }
   }
 
@@ -179,13 +171,11 @@ public class ClassFileInput
 	int flags = dis.readUnsignedShort();
 	int nameIndex = dis.readUnsignedShort();
 	int descriptorIndex = dis.readUnsignedShort();
-    // System.err.printf ("%s - methods %d - %d: 0x%x\n", cname, i, nMethods, flags);
+  // System.err.printf ("%s - methods %d - %d: 0x%x\n", cname, i, nMethods, flags);
 	Method meth = ctype.addMethod(null, flags);
-  /*
 	meth.setName(nameIndex);
-	meth.setSignature(descriptorIndex);
+	// meth.setSignature(descriptorIndex);
   meth.signature_index = descriptorIndex;
-  */
 	readAttributes(dis, meth);
       }
   }
@@ -420,7 +410,7 @@ public class ClassFileInput
 
   protected CpoolClass getClassConstant (int index)
   {
-    return (CpoolClass) ctype.constants.getForced(index, ConstantPool.CLASS);
+    return ctype.constants.getForcedClass(index);
   }
   
   public void check (String name)
@@ -440,14 +430,8 @@ public class ClassFileInput
   else
     System.err.printf ("%s - constants : %d\n", name, ctype.constants);
   readClassInfo(dis);
-    String superName = "not defined";
-    if (ctype.superClassIndex > 0)
-      {
-  	CpoolClass clas = getClassConstant(ctype.superClassIndex);
-    superName = clas.name.string.replace('/', '.');
-      }
   System.err.printf ("%s - access_flag: 0x%x, thisClassIndex: %d, superClassIndex: %d, %s\n",
-    name, ctype.access_flags, ctype.thisClassIndex, ctype.superClassIndex, superName);
+    name, ctype.access_flags, ctype.thisClassIndex, ctype.superClassIndex, ctype.superClassName);
   readInterfaces(dis);
   if (ctype.interfaces != null)
     System.err.printf ("%s - interfaces length: %d\n", name, ctype.interfaces.length);

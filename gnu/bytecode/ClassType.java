@@ -78,6 +78,8 @@ public class ClassType extends ObjectType
 
   ClassType[] interfaces;
   int[] interfaceIndexes;
+  String[] interfacesName;
+  
   int access_flags;
 
   Attribute attributes;
@@ -1472,7 +1474,7 @@ public class ClassType extends ObjectType
       {
     classFileInput = new ClassFileInput(name, this);
     if (classFileInput == null) return;
-    classFileInput.check(name);
+    classFileInput.readClassFile();
       }
     catch (Exception ex)
       {

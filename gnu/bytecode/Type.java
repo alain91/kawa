@@ -102,7 +102,7 @@ public abstract class Type
         Type type = (Type) map.get(name);
         if (type == null)
           {
-            System.err.printf ("GET name: %s, type: %s\n", name, type);
+            // System.err.printf ("GET name: %s, type: %s\n", name, type);
             if (name.endsWith("[]"))
               type = ArrayType.make(name);
             else
@@ -112,7 +112,7 @@ public abstract class Type
                 type = cl;
               }
             map.put(name, type);
-            System.err.printf ("PUT name: %s, type: %s\n", name, type);
+            // System.err.printf ("PUT name: %s, type: %s\n", name, type);
           }
         return type;
       }

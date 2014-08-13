@@ -6,6 +6,7 @@ package gnu.bytecode;
 import java.io.InputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
+import gnu.mapping.WrappedException;
 
 /** Class to read a ClassType from a DataInputStream (.class file).
  * @author Per Bothner
@@ -62,7 +63,7 @@ public class ClassFileInput
       }
     catch (Exception ex)
       {
-          throw new InternalError(ex.toString());
+          throw new WrappedException(ex);
       }
   }
   
@@ -189,7 +190,6 @@ public class ClassFileInput
 
     for (int i = 0;  i < count;  i++)
       {
-  /*
 	if (last != null)
 	  {
 	    for (;;)
@@ -200,16 +200,15 @@ public class ClassFileInput
 		last = next;
 	      }
 	  }
-  */
+  
 	int index = dis.readUnsignedShort();
-  /*
   CpoolEntry entry = ctype.constants.getPoolEntry(index);
 	CpoolUtf8 nameConstant = (CpoolUtf8)
 	  ctype.constants.getForced(index, ConstantPool.UTF8);
-  */
+
 	int length = dis.readInt();
-  if (length > 0) dis.skipBytes(length);
-  /*
+  // if (length > 0) dis.skipBytes(length);
+
 	nameConstant.intern();
 	Attribute attr = readAttribute(dis, nameConstant.string, length, container);
 	if (attr != null)
@@ -229,7 +228,6 @@ public class ClassFileInput
 	      }
 	    last = attr;
 	  }
-    */
       }
   }
 
@@ -448,7 +446,7 @@ public class ClassFileInput
       }
     catch (Exception ex)
       {
-  throw new InternalError(ex.toString());
+  throw new WrappedException(ex);
       }
     finally
       {

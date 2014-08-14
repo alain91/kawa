@@ -12,40 +12,31 @@ import gnu.mapping.WrappedException;
  * @author Per Bothner
  */
 
-public class ClassFileInput
+public class ClassFileInput extends DataInputStream
 {
   ClassType ctype;
   String cname;
-
-  public ClassFileInput (String cname)
+  
+  public ClassFileInput (InputStream is, String cname, ClassType ctype)
+      throws IOException
   {
+    super(is);
     this.cname = cname;
-    this.ctype = new ClassType();
+    this.ctype = ctype;
   }
   
-  /*
-  public ClassFileInput (ClassType ctype, InputStream str)
-      throws IOException, ClassFormatError
+  public static ClassFileInput getInstance (String cname)
+      throws IOException
   {
-    super(str);
-    this.ctype = ctype;
-    if (!readHeader())
-      throw new ClassFormatError("invalid magic number");
-    readVersion();
-    readConstants();
-    readClassInfo();
-    readInterfaces();
-    readFields();
-    readMethods();
-    readAttributes(ctype);
-    close();
+    String entryName = cname.replace('.','/')+".class";
+    ClassType ctype = new ClassType();
+    ClassLoader cLoader = ctype.getClass().getClassLoader();
+    InputStream is = cLoader.getResourceAsStream(entryName);
+    if (is == null) return null;
+    return new ClassFileInput(is, cname, ctype);
   }
-  */
 
-  /** Read a class (in .class format) from an InputStream.
-    * @return A new ClassType object representing the class that was read.
-    */
-
+  /*
   public DataInputStream getDataInputStream (String name)
       throws IOException
   {
@@ -66,6 +57,7 @@ public class ClassFileInput
           throw new WrappedException(ex);
       }
   }
+  */
   
 	/** Read file header for magic number
 		* @return boolean false if magic NOK
@@ -137,7 +129,7 @@ public class ClassFileInput
   ctype.interfaceIndexes[i] = index;
   clas = getClassConstant(index);
   name = clas.name.string.replace('/', '.');
-  ctype.interfacesName[i] = name;
+  // ctype.interfacesName[i] = name;
       }
   }
   
@@ -208,8 +200,8 @@ public class ClassFileInput
 
 	int length = dis.readInt();
 	nameConstant.intern();
-  if (length > 0) dis.skipBytes(length);
-  /*
+  // if (length > 0) dis.skipBytes(length);
+  
 	Attribute attr = readAttribute(dis, nameConstant.string, length, container);
 	if (attr != null)
 	  {
@@ -228,7 +220,7 @@ public class ClassFileInput
 	      }
 	    last = attr;
 	  }
-  */
+  
       }
   }
 
@@ -416,13 +408,12 @@ public class ClassFileInput
   public void readClassFile ()
       throws IOException
   {
-  DataInputStream dis = null;
+  DataInputStream dis = this;
   String name = this.cname;
     try
       {
-  dis = getDataInputStream(name);
-  if (dis == null) return;
-  
+  if (!readHeader(dis))
+    throw new ClassFormatError("invalid magic number");
   readVersion(dis);
   System.err.printf ("%s - version: 0x%x\n", name, ctype.classfileFormatVersion);
   readConstants(dis);
@@ -451,7 +442,7 @@ public class ClassFileInput
       }
     finally
       {
-  if (dis != null) dis.close();
+  if (dis != null) close();
       }
     
   }

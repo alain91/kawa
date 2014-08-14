@@ -5,6 +5,7 @@
 package gnu.bytecode;
 import java.io.*;
 import java.util.*;
+import gnu.mapping.WrappedException;
 
 public class ClassType extends ObjectType 
   implements AttrContainer, Externalizable, Member
@@ -1472,13 +1473,13 @@ public class ClassType extends ObjectType
   {
     try
       {
-    classFileInput = new ClassFileInput(name);
+    classFileInput = ClassFileInput.getInstance(name);
     if (classFileInput == null) return;
     classFileInput.readClassFile();
       }
     catch (Exception ex)
       {
-    throw new InternalError(ex.toString());
+    throw new WrappedException(ex);
       }
   }
 

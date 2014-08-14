@@ -6,6 +6,7 @@ package gnu.bytecode;
 import java.io.InputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
+import gnu.mapping.WrappedException;
 
 /** Class to read a ClassType from a DataInputStream (.class file).
  * @author Per Bothner
@@ -16,10 +17,10 @@ public class ClassFileInput
   ClassType ctype;
   String cname;
 
-  public ClassFileInput (String cname, ClassType ctype)
+  public ClassFileInput (String cname)
   {
     this.cname = cname;
-    this.ctype = ctype;
+    this.ctype = new ClassType();
   }
   
   /*
@@ -62,7 +63,7 @@ public class ClassFileInput
       }
     catch (Exception ex)
       {
-          throw new InternalError(ex.toString());
+          throw new WrappedException(ex);
       }
   }
   
@@ -109,8 +110,8 @@ public class ClassFileInput
 
     ctype.superClassIndex = dis.readUnsignedShort();
     if (ctype.superClassIndex == 0)
-      ctype.superClassName = "";
-      // ctype.setSuper((ClassType) null);
+  ctype.superClassName = "";
+  // ctype.setSuper((ClassType) null);
     else
       {
 	clas = getClassConstant(ctype.superClassIndex);
@@ -126,19 +127,17 @@ public class ClassFileInput
     CpoolClass clas;
     String name;
     int nInterfaces = dis.readUnsignedShort();
+    if (nInterfaces <= 0) return;
 
-    if (nInterfaces > 0)
+    ctype.interfacesName = new String[nInterfaces];
+    ctype.interfaceIndexes = new int[nInterfaces];
+    for (int i = 0;  i < nInterfaces;  i++)
       {
-	ctype.interfaces = new ClassType[nInterfaces];
-	ctype.interfaceIndexes = new int[nInterfaces];
-	for (int i = 0;  i < nInterfaces;  i++)
-	  {
-	    int index = dis.readUnsignedShort();
-	    ctype.interfaceIndexes[i] = index;
-	    clas = getClassConstant(index);
-	    name = clas.name.string.replace('/', '.');
-	    // ctype.interfaces[i] = ClassType.make(name);
-	  }
+  int index = dis.readUnsignedShort();
+  ctype.interfaceIndexes[i] = index;
+  clas = getClassConstant(index);
+  name = clas.name.string.replace('/', '.');
+  ctype.interfacesName[i] = name;
       }
   }
   
@@ -146,7 +145,8 @@ public class ClassFileInput
       throws IOException
   {
     int nFields = dis.readUnsignedShort();
-  
+    if (nFields <= 0) return;
+    
     for (int i = 0;  i < nFields;  i++)
       {
   int flags = dis.readUnsignedShort();
@@ -166,6 +166,8 @@ public class ClassFileInput
       throws IOException
   {
     int nMethods = dis.readUnsignedShort();
+    if (nMethods <= 0) return;
+    
     for (int i = 0;  i < nMethods;  i++)
       {
 	int flags = dis.readUnsignedShort();
@@ -188,7 +190,6 @@ public class ClassFileInput
 
     for (int i = 0;  i < count;  i++)
       {
-  /*
 	if (last != null)
 	  {
 	    for (;;)
@@ -199,17 +200,16 @@ public class ClassFileInput
 		last = next;
 	      }
 	  }
-  */
+  
 	int index = dis.readUnsignedShort();
-  /*
   CpoolEntry entry = ctype.constants.getPoolEntry(index);
 	CpoolUtf8 nameConstant = (CpoolUtf8)
 	  ctype.constants.getForced(index, ConstantPool.UTF8);
-  */
+
 	int length = dis.readInt();
+	nameConstant.intern();
   if (length > 0) dis.skipBytes(length);
   /*
-	nameConstant.intern();
 	Attribute attr = readAttribute(dis, nameConstant.string, length, container);
 	if (attr != null)
 	  {
@@ -228,7 +228,7 @@ public class ClassFileInput
 	      }
 	    last = attr;
 	  }
-    */
+  */
       }
   }
 
@@ -261,8 +261,8 @@ public class ClassFileInput
       }
     else if (name == "Code" && container instanceof Method)
       {
-        CodeAttr code = new CodeAttr((Method) container);
-        code.fixup_count = -1;
+  CodeAttr code = new CodeAttr((Method) container);
+  code.fixup_count = -1;
 	code.setMaxStack(dis.readUnsignedShort());
 	code.setMaxLocals(dis.readUnsignedShort());
 	int code_len = dis.readInt();
@@ -361,7 +361,7 @@ public class ClassFileInput
       }
     else if (name == "InnerClasses" && container instanceof ClassType)
       {
-        int count = 4 * dis.readUnsignedShort();
+  int count = 4 * dis.readUnsignedShort();
 	short[] data = new short[count];
 	for (int i = 0;  i < count;  i++)
 	  {
@@ -371,8 +371,8 @@ public class ClassFileInput
      }
     else if (name == "EnclosingMethod" && container instanceof ClassType)
       {
-        int class_index = dis.readUnsignedShort();
-        int method_index = dis.readUnsignedShort();
+  int class_index = dis.readUnsignedShort();
+  int method_index = dis.readUnsignedShort();
 	return new EnclosingMethodAttr(class_index, method_index, (ClassType) container);
      }
     else if (name == "Exceptions" && container instanceof Method)
@@ -413,10 +413,11 @@ public class ClassFileInput
     return ctype.constants.getForcedClass(index);
   }
   
-  public void check (String name)
+  public void readClassFile ()
       throws IOException
   {
   DataInputStream dis = null;
+  String name = this.cname;
     try
       {
   dis = getDataInputStream(name);
@@ -446,7 +447,7 @@ public class ClassFileInput
       }
     catch (Exception ex)
       {
-  throw new InternalError(ex.toString());
+  throw new WrappedException(ex);
       }
     finally
       {

@@ -810,10 +810,13 @@ public class Translator extends Compilation
                   }
                 catch (Throwable ex)
                   {
+                    /*
                     error('e',
                           "exception loading '" + exp
                           + "' - " + ex.getMessage());
+                    */
                     decl = null;
+                    throw new WrappedException(ex);
                   }
               }
             else if (mode != 'M' && (loc == null || ! loc.isBound()))

@@ -17,10 +17,10 @@ public class ClassFileInput
   ClassType ctype;
   String cname;
 
-  public ClassFileInput (String cname, ClassType ctype)
+  public ClassFileInput (String cname)
   {
     this.cname = cname;
-    this.ctype = ctype;
+    this.ctype = new ClassType();
   }
   
   /*
@@ -207,9 +207,9 @@ public class ClassFileInput
 	  ctype.constants.getForced(index, ConstantPool.UTF8);
 
 	int length = dis.readInt();
-  // if (length > 0) dis.skipBytes(length);
-
 	nameConstant.intern();
+  if (length > 0) dis.skipBytes(length);
+  /*
 	Attribute attr = readAttribute(dis, nameConstant.string, length, container);
 	if (attr != null)
 	  {
@@ -228,6 +228,7 @@ public class ClassFileInput
 	      }
 	    last = attr;
 	  }
+  */
       }
   }
 

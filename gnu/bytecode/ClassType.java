@@ -1472,7 +1472,7 @@ public class ClassType extends ObjectType
   {
     try
       {
-    classFileInput = new ClassFileInput(name, this);
+    classFileInput = new ClassFileInput(name);
     if (classFileInput == null) return;
     classFileInput.readClassFile();
       }

@@ -10,33 +10,21 @@ import gnu.mapping.WrappedException;
 
 /** Class to read a ClassType from a DataInputStream (.class file).
  * @author Per Bothner
+ * @author (revised by) Alain Gandon
  */
 
-public class ClassFileInput extends DataInputStream
+public class ClassFileInput
 {
   ClassType ctype;
   String cname;
   
-  public ClassFileInput (InputStream is, String cname, ClassType ctype)
+  public ClassFileInput (String cname)
       throws IOException
   {
-    super(is);
     this.cname = cname;
-    this.ctype = ctype;
+    this.ctype = new ClassType(); // new empty ClassType
   }
   
-  public static ClassFileInput getInstance (String cname)
-      throws IOException
-  {
-    String entryName = cname.replace('.','/')+".class";
-    ClassType ctype = new ClassType();
-    ClassLoader cLoader = ctype.getClass().getClassLoader();
-    InputStream is = cLoader.getResourceAsStream(entryName);
-    if (is == null) return null;
-    return new ClassFileInput(is, cname, ctype);
-  }
-
-  /*
   public DataInputStream getDataInputStream (String name)
       throws IOException
   {
@@ -47,17 +35,13 @@ public class ClassFileInput extends DataInputStream
         ClassLoader cLoader = ctype.getClass().getClassLoader();
         InputStream i = cLoader.getResourceAsStream(entryName);
         if (i == null) return null;
-        dis = new DataInputStream(i);
-        if (!readHeader(dis))
-          throw new ClassFormatError("invalid magic number");
-        return dis;
+        return new DataInputStream(i);
       }
     catch (Exception ex)
       {
           throw new WrappedException(ex);
       }
   }
-  */
   
 	/** Read file header for magic number
 		* @return boolean false if magic NOK
@@ -194,14 +178,12 @@ public class ClassFileInput extends DataInputStream
 	  }
   
 	int index = dis.readUnsignedShort();
-  CpoolEntry entry = ctype.constants.getPoolEntry(index);
+  // CpoolEntry entry = ctype.constants.getPoolEntry(index);
 	CpoolUtf8 nameConstant = (CpoolUtf8)
 	  ctype.constants.getForced(index, ConstantPool.UTF8);
 
 	int length = dis.readInt();
 	nameConstant.intern();
-  // if (length > 0) dis.skipBytes(length);
-  
 	Attribute attr = readAttribute(dis, nameConstant.string, length, container);
 	if (attr != null)
 	  {
@@ -224,29 +206,12 @@ public class ClassFileInput extends DataInputStream
       }
   }
 
-  /*
-  public final void skipAttribute (int length)
-    throws IOException
-  {
-    int read = 0;
-    while (read < length)
-      {
-	int skipped = (int) skip(length - read);
-	if (skipped == 0)
-	  {
-	    if (read() < 0)
-	      throw new java.io.EOFException
-		("EOF while reading class files attributes");
-	    skipped = 1;
-	  }
-	read += skipped;
-      }
-  }
-  */
-
   public Attribute readAttribute (DataInputStream dis, String name, int length, AttrContainer container)
       throws IOException
   {
+    if (length > 0) dis.skipBytes(length);
+    return null;
+  /*
     if (name == "SourceFile" && container instanceof ClassType)
       {
 	return new SourceFileAttr(dis.readUnsignedShort(), (ClassType) container);
@@ -398,6 +363,7 @@ public class ClassFileInput extends DataInputStream
 	dis.readFully(data, 0, length);
 	return new MiscAttr(name, data);
       }
+  */
   }
 
   protected CpoolClass getClassConstant (int index)
@@ -408,42 +374,46 @@ public class ClassFileInput extends DataInputStream
   public void readClassFile ()
       throws IOException
   {
-  DataInputStream dis = this;
+  DataInputStream dis = getDataInputStream (this.cname);
+  if (dis == null) return;
   String name = this.cname;
-    try
+  try
+    {
+    if (!readHeader(dis))
+      throw new ClassFormatError("invalid magic number");
+    readVersion(dis);
+    readConstants(dis);
+    readClassInfo(dis);
+    readInterfaces(dis);
+    readFields(dis); 
+    readMethods(dis); 
+    readAttributes(dis, ctype);
+  
+    if (false)
       {
-  if (!readHeader(dis))
-    throw new ClassFormatError("invalid magic number");
-  readVersion(dis);
-  System.err.printf ("%s - version: 0x%x\n", name, ctype.classfileFormatVersion);
-  readConstants(dis);
-  if (ctype.constants != null)
-    System.err.printf ("%s - constants length: %d\n", name, ctype.constants.getCount());
-  else
-    System.err.printf ("%s - constants : %d\n", name, ctype.constants);
-  readClassInfo(dis);
-  System.err.printf ("%s - access_flag: 0x%x, thisClassIndex: %d, superClassIndex: %d, %s\n",
-    name, ctype.access_flags, ctype.thisClassIndex, ctype.superClassIndex, ctype.superClassName);
-  readInterfaces(dis);
-  if (ctype.interfaces != null)
-    System.err.printf ("%s - interfaces length: %d\n", name, ctype.interfaces.length);
-  else
-    System.err.printf ("%s - interfaces : %d\n", name, ctype.interfaces);
-  readFields(dis);
+    System.err.printf ("%s - version: 0x%x\n", name, ctype.classfileFormatVersion);
+    if (ctype.constants != null)
+      System.err.printf ("%s - constants length: %d\n", name, ctype.constants.getCount());
+    else
+      System.err.printf ("%s - constants : %d\n", name, ctype.constants);
+    System.err.printf ("%s - access_flag: 0x%x, thisClassIndex: %d, superClassIndex: %d, %s\n",
+      name, ctype.access_flags, ctype.thisClassIndex, ctype.superClassIndex, ctype.superClassName);
+    if (ctype.interfaces != null)
+      System.err.printf ("%s - interfaces length: %d\n", name, ctype.interfaces.length);
+    else
+      System.err.printf ("%s - interfaces : %d\n", name, ctype.interfaces);
     System.err.printf ("%s - fields length: %d\n", name, ctype.fields_count);
-  readMethods(dis);
     System.err.printf ("%s - methods length: %d\n", name, ctype.methods_count);
-  readAttributes(dis, ctype);
     System.err.printf ("%s - attributes\n", name);
       }
-    catch (Exception ex)
-      {
-  throw new WrappedException(ex);
-      }
-    finally
-      {
-  if (dis != null) close();
-      }
-    
+    }
+  catch (Exception ex)
+    {
+    throw new WrappedException(ex);
+    }
+  finally
+    {
+    if (dis != null) dis.close();
+    }
   }
 }

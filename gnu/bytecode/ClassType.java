@@ -5,6 +5,7 @@
 package gnu.bytecode;
 import java.io.*;
 import java.util.*;
+import gnu.mapping.WrappedException;
 
 public class ClassType extends ObjectType 
   implements AttrContainer, Externalizable, Member
@@ -118,10 +119,21 @@ public class ClassType extends ObjectType
 	&& (flags & EXISTING_CLASS) != 0 && getReflectClass() != null)
 		{
       access_flags = reflectClass.getModifiers();
-      if (classFileInput != null) {
+      
+      if (classFileInput != null)
+        {
+          try
+            {
+          if (classFileInput.ctype.magic == 0) classFileInput.readClassFile ();
           int access_flags2 = classFileInput.ctype.access_flags;
+          access_flags2 &= ~0x20; // 0x20 is not a valid flag in getModifiers
           traceCompare(access_flags == access_flags2, "getModifiers");
-      }
+            }
+          catch (Exception ex)
+            {
+          throw new WrappedException(ex);
+            }
+        }
 		}
     return access_flags;
   }
@@ -450,6 +462,9 @@ public class ClassType extends ObjectType
 	superClass = (ClassType) make(reflectClass.getSuperclass());
   if (classFileInput != null)
     {
+      try
+        {
+      if (classFileInput.ctype.magic == 0) classFileInput.readClassFile ();
       CpoolClass clas = classFileInput.getClassConstant(classFileInput.ctype.superClassIndex);
       String superName = clas.name.string.replace('/', '.');
       /*
@@ -457,6 +472,11 @@ public class ClassType extends ObjectType
         "getSuperclass", getName(), superClass.getName(), superName, classFileInput.ctype.superClassIndex);
       */
       traceCompare(superClass.getName().equals(superName), "getSuperclass");
+        }
+      catch (Exception ex)
+        {
+      throw new WrappedException(ex);
+        }
     }
       }
     return superClass;
@@ -1474,11 +1494,11 @@ public class ClassType extends ObjectType
       {
     classFileInput = new ClassFileInput(name);
     if (classFileInput == null) return;
-    classFileInput.readClassFile();
+    // classFileInput.readClassFile();
       }
     catch (Exception ex)
       {
-    throw new InternalError(ex.toString());
+    throw new WrappedException(ex);
       }
   }
 

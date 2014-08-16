@@ -21,8 +21,6 @@ public class ClassType extends ObjectType
 
   // An old but generally valid default value.
   int classfileFormatVersion = JDK_1_1_VERSION;
-  
-  int magic;
 
   public short getClassfileMajorVersion ()
   {
@@ -124,7 +122,7 @@ public class ClassType extends ObjectType
         {
           try
             {
-          if (classFileInput.ctype.magic == 0) classFileInput.readClassFile ();
+          if (! classFileInput.isAvailable()) classFileInput.readClassFile ();
           int access_flags2 = classFileInput.ctype.access_flags;
           access_flags2 &= ~0x20; // 0x20 is not a valid flag in getModifiers
           traceCompare(access_flags == access_flags2, "getModifiers");
@@ -464,7 +462,7 @@ public class ClassType extends ObjectType
     {
       try
         {
-      if (classFileInput.ctype.magic == 0) classFileInput.readClassFile ();
+      if (! classFileInput.isAvailable()) classFileInput.readClassFile ();
       CpoolClass clas = classFileInput.getClassConstant(classFileInput.ctype.superClassIndex);
       String superName = clas.name.string.replace('/', '.');
       /*

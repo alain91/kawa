@@ -17,6 +17,7 @@ public class ClassFileInput
 {
   ClassType ctype;
   String cname;
+  int magic;
   
   public ClassFileInput (String cname)
       throws IOException
@@ -43,6 +44,11 @@ public class ClassFileInput
       }
   }
   
+  public boolean isAvailable()
+  {
+    return (this.magic == 0xcafebabe);
+  }
+  
 	/** Read file header for magic number
 		* @return boolean false if magic NOK
 		*/
@@ -51,7 +57,7 @@ public class ClassFileInput
   {
     int magic = dis.readInt();
     if (magic != 0xcafebabe) return false;
-    ctype.magic = magic;
+    this.magic = magic;
     return true;
   }
 

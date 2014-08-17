@@ -119,8 +119,22 @@ public class ClassFileInput
   ctype.interfaceIndexes[i] = index;
   clas = getClassConstant(index);
   name = clas.name.string.replace('/', '.');
+  if (name == null)
+    System.err.println(cname+" - interface :"+index+", "+clas);
   // ctype.interfacesName[i] = name;
       }
+  }
+  
+  public ClassType[] getInterfaces ()
+  {
+    if (ctype.interfacesName == null || ctype.interfacesName[0] == null) return ctype.noClasses;
+    int nInterfaces = ctype.interfacesName.length;
+    ClassType[] interfaces = new ClassType[nInterfaces];
+    for (int i = 0;  i < nInterfaces;  i++)
+      {
+        interfaces[i] = ctype.make(ctype.interfacesName[i]);
+      }
+    return interfaces;
   }
   
   public void readFields (DataInputStream dis)

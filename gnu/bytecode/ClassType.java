@@ -114,25 +114,27 @@ public class ClassType extends ObjectType
   public final synchronized int getModifiers()
   {
     if (access_flags == 0
-	&& (flags & EXISTING_CLASS) != 0 && getReflectClass() != null)
+	&& (flags & EXISTING_CLASS) != 0
+  && getReflectClass() != null)
 		{
       access_flags = reflectClass.getModifiers();
-      
-      if (classFileInput != null)
-        {
-          try
-            {
-          if (! classFileInput.isAvailable()) classFileInput.readClassFile ();
-          int access_flags2 = classFileInput.ctype.access_flags;
-          access_flags2 &= ~0x20; // 0x20 is not a valid flag in getModifiers
-          traceCompare(access_flags == access_flags2, "getModifiers");
-            }
-          catch (Exception ex)
-            {
-          throw new WrappedException(ex);
-            }
-        }
 		}
+    
+    if (classFileInput != null)
+      {
+        try
+          {
+        if (! classFileInput.isAvailable()) classFileInput.readClassFile ();
+        int access_flags2 = classFileInput.ctype.access_flags;
+        access_flags2 &= ~0x20; // 0x20 is not a valid flag in getModifiers
+        traceCompare(access_flags == access_flags2, "getModifiers");
+          }
+        catch (Exception ex)
+          {
+        throw new WrappedException(ex);
+          }
+      }
+    
     return access_flags;
   }
 
@@ -494,7 +496,8 @@ public class ClassType extends ObjectType
   public synchronized ClassType[] getInterfaces()
   {
    if (interfaces == null
-	&& (flags & EXISTING_CLASS) != 0 && getReflectClass() != null)
+	&& (flags & EXISTING_CLASS) != 0
+  && getReflectClass() != null)
       {
 	Class<?>[] reflectInterfaces = reflectClass.getInterfaces();
 	int numInterfaces = reflectInterfaces.length;
@@ -505,10 +508,13 @@ public class ClassType extends ObjectType
 	  interfaces[i] = (ClassType) Type.make(reflectInterfaces[i]);
       }
     
-    if (classFileInput != null) {
-        ClassType[] interfaces2 = classFileInput.ctype.interfaces;
+    if (classFileInput != null)
+      {
+        ClassType[] interfaces2 = classFileInput.getInterfaces();
         traceCompare (interfaces == interfaces2, "getInterfaces");
-    }
+        if (interfaces != interfaces2)
+          System.err.println(getName()+" - getInterfaces : "+interfaces+" - "+interfaces2);
+      }
     return interfaces;
   }
 

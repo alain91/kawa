@@ -119,9 +119,7 @@ public class ClassFileInput
   ctype.interfaceIndexes[i] = index;
   clas = getClassConstant(index);
   name = clas.name.string.replace('/', '.');
-  if (name == null)
-    System.err.println(cname+" - interface :"+index+", "+clas);
-  // ctype.interfacesName[i] = name;
+  ctype.interfacesName[i] = name;
       }
   }
   
@@ -182,21 +180,9 @@ public class ClassFileInput
       throws IOException
   {
     int count = dis.readUnsignedShort();
-    Attribute last = container.getAttributes();
 
     for (int i = 0;  i < count;  i++)
       {
-	if (last != null)
-	  {
-	    for (;;)
-	      {
-		Attribute next = last.getNext();
-		if (next == null)
-		  break;
-		last = next;
-	      }
-	  }
-  
 	int index = dis.readUnsignedShort();
   // CpoolEntry entry = ctype.constants.getPoolEntry(index);
 	CpoolUtf8 nameConstant = (CpoolUtf8)
@@ -205,31 +191,47 @@ public class ClassFileInput
 	int length = dis.readInt();
 	nameConstant.intern();
 	Attribute attr = readAttribute(dis, nameConstant.string, length, container);
+
 	if (attr != null)
 	  {
 	    if (attr.getNameIndex() == 0)
 	      attr.setNameIndex(index);
-	    if (last == null)
-	      container.setAttributes(attr);
-	    else
-	      {
-		if (container.getAttributes()==attr)
-		  { // Move to end.
-		    container.setAttributes(attr.getNext());
-		    attr.setNext(null);
-		  }
-		last.setNext(attr);
-	      }
-	    last = attr;
+      appendAttribute(attr, container);
+      System.err.println("attribute:"+attr);
 	  }
-  
       }
   }
 
+  public void appendAttribute (Attribute attr, AttrContainer container)
+  {
+    if (attr == null) return;
+    
+    Attribute last;
+    for (last = container.getAttributes(); last != null; )
+    {
+      Attribute next = last.getNext();
+      if (next == null) break;
+      last = next;
+    }
+    
+    attr.setNext(null); // force to be the last element
+    
+    if (last != null)
+      last.setNext(attr);
+    else
+      container.setAttributes(attr);
+      
+  }
+  
   public Attribute readAttribute (DataInputStream dis, String name, int length, AttrContainer container)
       throws IOException
   {
-    if (length > 0) dis.skipBytes(length);
+    if (length > 0) 
+      {
+	byte[] data = new byte[length];
+	dis.readFully(data, 0, length);
+	return new MiscAttr(name, data);
+      }
     return null;
   /*
     if (name == "SourceFile" && container instanceof ClassType)
@@ -436,4 +438,5 @@ public class ClassFileInput
     if (dis != null) dis.close();
     }
   }
+  
 }

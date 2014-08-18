@@ -157,12 +157,14 @@ public abstract class Attribute
       }
   }
 
+  public String toString()
+  {
+    return "Attribute \""+getName()+"\", length:"+getLength();
+  }
+  
   public void print (ClassTypeWriter dst)
   {
-    dst.print("Attribute \"");
-    dst.print(getName());
-    dst.print("\", length:");
-    dst.println(getLength());
+    dst.println(toString());
   }
 
 };

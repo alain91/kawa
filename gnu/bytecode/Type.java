@@ -102,7 +102,7 @@ public abstract class Type
         Type type = (Type) map.get(name);
         if (type == null)
           {
-            // System.err.printf ("GET name: %s, type: %s\n", name, type);
+            System.err.printf ("GET name: %s, type: %s\n", name, type);
             if (name.endsWith("[]"))
               type = ArrayType.make(name);
             else
@@ -112,7 +112,7 @@ public abstract class Type
                 type = cl;
               }
             map.put(name, type);
-            // System.err.printf ("PUT name: %s, type: %s\n", name, type);
+            System.err.printf ("PUT name: %s, type: %s\n", name, type);
           }
         return type;
       }
@@ -194,6 +194,7 @@ public abstract class Type
     if (mapClassToType != null)
       {
 	Type t = mapClassToType.get(reflectClass);
+  System.err.println("mapClassToType:"+t);
 	if (t != null)
 	  return t;
       }
@@ -204,17 +205,19 @@ public abstract class Type
     else
       {
 	String name = reflectClass.getName();
+  type = Type.getType(name);
         /* #ifdef JAVA5 */
         java.util.HashMap<String,Type> map = mapNameToType;
         /* #else */
         // java.util.Hashtable map = mapNameToType;
         /* #endif */
+        /*
         synchronized (map)
           {
             type = (Type) map.get(name);
             if (type == null
                 || (type.reflectClass != reflectClass
-                    && type.reflectClass != null))
+                    && type.reflectClass != null) )
               {
                 ClassType cl = new ClassType(name);
                 cl.setExisting(true);
@@ -222,6 +225,7 @@ public abstract class Type
                 mapNameToType.put(name, type);
               }
           }
+        */
       }
     registerTypeForClass(reflectClass, type);
     return type;

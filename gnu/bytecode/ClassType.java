@@ -495,9 +495,9 @@ public class ClassType extends ObjectType
    */
   public synchronized ClassType[] getInterfaces()
   {
-   if (interfaces == null
-	&& (flags & EXISTING_CLASS) != 0
-  && getReflectClass() != null)
+     if (interfaces == null
+    && (flags & EXISTING_CLASS) != 0
+    && getReflectClass() != null)
       {
 	Class<?>[] reflectInterfaces = reflectClass.getInterfaces();
 	int numInterfaces = reflectInterfaces.length;
@@ -512,8 +512,14 @@ public class ClassType extends ObjectType
       {
         ClassType[] interfaces2 = classFileInput.getInterfaces();
         traceCompare (interfaces == interfaces2, "getInterfaces");
-        if (interfaces != interfaces2)
-          System.err.println(getName()+" - getInterfaces : "+interfaces+" - "+interfaces2);
+        if (interfaces != interfaces2) {
+          System.err.println(getName()+" - ClassFileInput getInterfaces : "+interfaces+" - "+interfaces2);
+          if ((interfaces != null) && (interfaces2 != null)) {
+            for (int i = 0; i < interfaces.length; i++) {
+              System.err.println(getName()+" - ClassFileInput getInterfaces : "+interfaces[i]+" - "+interfaces2[i]);
+            }
+          }
+        }
       }
     return interfaces;
   }

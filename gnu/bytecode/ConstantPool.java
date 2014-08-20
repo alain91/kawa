@@ -347,6 +347,7 @@ public class ConstantPool
     for (int i = 1;  i <= count;  i++)
       {
 	int tag = dstr.readUnsignedByte();
+  // System.err.println("Constant index:"+i+", tag:"+tag);
 	CpoolEntry entry = getForced(i, tag);
 	switch (tag)
 	  {

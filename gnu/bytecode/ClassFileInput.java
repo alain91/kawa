@@ -17,7 +17,8 @@ public class ClassFileInput
 {
   ClassType ctype;
   String cname;
-  int magic;
+  protected int magic;
+  protected final int MAGIC_OK = 0xcafebabe;
   
   public ClassFileInput (String cname)
       throws IOException
@@ -26,7 +27,7 @@ public class ClassFileInput
     this.ctype = new ClassType(); // new empty ClassType
   }
   
-  public DataInputStream getDataInputStream (String name)
+  protected DataInputStream getDataInputStream (String name)
       throws IOException
   {
     DataInputStream dis = null;
@@ -46,22 +47,22 @@ public class ClassFileInput
   
   public boolean isAvailable()
   {
-    return (this.magic == 0xcafebabe);
+    return (this.magic == MAGIC_OK);
   }
   
 	/** Read file header for magic number
 		* @return boolean false if magic NOK
 		*/
-  public boolean readHeader (DataInputStream dis)
+  protected boolean readHeader (DataInputStream dis)
       throws IOException
   {
     int magic = dis.readInt();
-    if (magic != 0xcafebabe) return false;
+    if (magic != MAGIC_OK) return false;
     this.magic = magic;
     return true;
   }
 
-  public void readVersion (DataInputStream dis)
+  protected void readVersion (DataInputStream dis)
       throws IOException
   {
     int minor = dis.readUnsignedShort();
@@ -69,14 +70,14 @@ public class ClassFileInput
     ctype.classfileFormatVersion = (major * 0x10000 + minor);
   }
 
-  public void readConstants (DataInputStream dis)
+  protected void readConstants (DataInputStream dis)
       throws IOException
   {
     ctype.constants = new ConstantPool();
     ctype.constants.readConstants(dis);
   }
 
-  public void readClassInfo (DataInputStream dis)
+  protected void readClassInfo (DataInputStream dis)
       throws IOException
   {
     CpoolClass clas;
@@ -103,7 +104,7 @@ public class ClassFileInput
       }
 	}
 
-	public void readInterfaces (DataInputStream dis)
+	protected void readInterfaces (DataInputStream dis)
       throws IOException
 	{
     CpoolClass clas;
@@ -135,7 +136,7 @@ public class ClassFileInput
     return interfaces;
   }
   
-  public void readFields (DataInputStream dis)
+  protected void readFields (DataInputStream dis)
       throws IOException
   {
     int nFields = dis.readUnsignedShort();
@@ -156,7 +157,7 @@ public class ClassFileInput
       }
   }
 
-  public void readMethods (DataInputStream dis)
+  protected void readMethods (DataInputStream dis)
       throws IOException
   {
     int nMethods = dis.readUnsignedShort();
@@ -176,7 +177,7 @@ public class ClassFileInput
       }
   }
 
-  public void readAttributes (DataInputStream dis, AttrContainer container)
+  protected void readAttributes (DataInputStream dis, AttrContainer container)
       throws IOException
   {
     int count = dis.readUnsignedShort();
@@ -184,7 +185,6 @@ public class ClassFileInput
     for (int i = 0;  i < count;  i++)
       {
 	int index = dis.readUnsignedShort();
-  // CpoolEntry entry = ctype.constants.getPoolEntry(index);
 	CpoolUtf8 nameConstant = (CpoolUtf8)
 	  ctype.constants.getForced(index, ConstantPool.UTF8);
 
@@ -197,12 +197,12 @@ public class ClassFileInput
 	    if (attr.getNameIndex() == 0)
 	      attr.setNameIndex(index);
       appendAttribute(attr, container);
-      System.err.println("attribute:"+attr);
+      // System.err.println("attribute:"+attr);
 	  }
       }
   }
 
-  public void appendAttribute (Attribute attr, AttrContainer container)
+  protected void appendAttribute (Attribute attr, AttrContainer container)
   {
     if (attr == null) return;
     
@@ -223,7 +223,7 @@ public class ClassFileInput
       
   }
   
-  public Attribute readAttribute (DataInputStream dis, String name, int length, AttrContainer container)
+  protected Attribute readAttribute (DataInputStream dis, String name, int length, AttrContainer container)
       throws IOException
   {
     if (length > 0) 

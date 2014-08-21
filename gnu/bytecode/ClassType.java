@@ -101,14 +101,6 @@ public class ClassType extends ObjectType
       return null;
     return constants.pool[i];
   }
-
-  public final void traceCompare(boolean result, String name)
-  {
-    if (result)
-        System.err.println(name+": valeurs egales");
-    else
-        System.err.println(name+": valeurs differentes");
-  }
   
   /** Return the modifiers (access flags) for this class. */
   public final synchronized int getModifiers()
@@ -127,7 +119,8 @@ public class ClassType extends ObjectType
         if (! classFileInput.isAvailable()) classFileInput.readClassFile ();
         int access_flags2 = classFileInput.ctype.access_flags;
         access_flags2 &= ~0x20; // 0x20 is not a valid flag in getModifiers
-        traceCompare(access_flags == access_flags2, "getModifiers");
+        if (access_flags != access_flags2)
+    System.err.printf("%s - getModifiers: 0x%x 0x%x\n", getName(), access_flags, access_flags2);
           }
         catch (Exception ex)
           {
@@ -464,14 +457,11 @@ public class ClassType extends ObjectType
     {
       try
         {
-      if (! classFileInput.isAvailable()) classFileInput.readClassFile ();
-      CpoolClass clas = classFileInput.getClassConstant(classFileInput.ctype.superClassIndex);
-      String superName = clas.name.string.replace('/', '.');
-      /*
-      System.err.printf("%s - %s valeurs : %s %s %d\n", 
-        "getSuperclass", getName(), superClass.getName(), superName, classFileInput.ctype.superClassIndex);
-      */
-      traceCompare(superClass.getName().equals(superName), "getSuperclass");
+    if (! classFileInput.isAvailable()) classFileInput.readClassFile ();
+    CpoolClass clas = classFileInput.getClassConstant(classFileInput.ctype.superClassIndex);
+    String superName = clas.name.string.replace('/', '.');
+    if (! superClass.getName().equals(superName))
+      System.err.println(getName()+" - getSuperclass: "+superClass.getName()+", "+superName);
         }
       catch (Exception ex)
         {
@@ -511,15 +501,24 @@ public class ClassType extends ObjectType
     if (classFileInput != null)
       {
         ClassType[] interfaces2 = classFileInput.getInterfaces();
-        traceCompare (interfaces == interfaces2, "getInterfaces");
-        if (interfaces != interfaces2) {
-          System.err.println(getName()+" - ClassFileInput getInterfaces : "+interfaces+" - "+interfaces2);
-          if ((interfaces != null) && (interfaces2 != null)) {
-            for (int i = 0; i < interfaces.length; i++) {
-              System.err.println(getName()+" - ClassFileInput getInterfaces : "+interfaces[i]+" - "+interfaces2[i]);
-            }
-          }
-        }
+        int result = 0;
+        if (interfaces == null)
+          if (interfaces2 == null) result = 0;
+          else result = 2;
+        else
+          if (interfaces2 == null) result = 3;
+          else
+            if (interfaces.length != interfaces2.length) result = 4;
+            else
+              for (int i = 0; i < interfaces.length; i++) {
+                if (interfaces[i].getName() != interfaces2[i].getName()) {
+                  result = 5;
+                  break;
+                }
+              }
+        
+        if (result != 0)
+          System.err.println(getName()+" - getInterfaces: "+result);
       }
     return interfaces;
   }
@@ -669,8 +668,7 @@ public class ClassType extends ObjectType
   }
 
   public final Field addField (String name, Type type) {
-    Field field = new Field (this);
-    field.setName(name);
+    Field field = addField (name);
     field.setType(type);
     return field;
   }

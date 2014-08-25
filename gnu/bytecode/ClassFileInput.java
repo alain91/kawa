@@ -67,7 +67,7 @@ public class ClassFileInput
   {
     int minor = dis.readUnsignedShort();
     int major = dis.readUnsignedShort();
-    ctype.classfileFormatVersion = (major * 0x10000 + minor);
+    ctype.setClassfileVersion(major, minor);
   }
 
   protected void readConstants (DataInputStream dis)

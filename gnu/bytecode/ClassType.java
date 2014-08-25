@@ -112,13 +112,14 @@ public class ClassType extends ObjectType
       access_flags = reflectClass.getModifiers();
 		}
     
-    if (classFileInput != null)
+    if (classFileInput != null
+	&& (flags & EXISTING_CLASS) != 0)
       {
         try
           {
         if (! classFileInput.isAvailable()) classFileInput.readClassFile ();
         int access_flags2 = classFileInput.ctype.access_flags;
-        access_flags2 &= ~0x20; // 0x20 is not a valid flag in getModifiers
+        access_flags2 &= ~0x20; // 0x20 could be a difference
         if (access_flags != access_flags2)
     System.err.printf("%s - getModifiers: 0x%x 0x%x\n", getName(), access_flags, access_flags2);
           }
@@ -498,7 +499,8 @@ public class ClassType extends ObjectType
 	  interfaces[i] = (ClassType) Type.make(reflectInterfaces[i]);
       }
     
-    if (classFileInput != null)
+    if (classFileInput != null
+    && (flags & EXISTING_CLASS) != 0)
       {
         ClassType[] interfaces2 = classFileInput.getInterfaces();
         int result = 0;
@@ -518,7 +520,7 @@ public class ClassType extends ObjectType
               }
         
         if (result != 0)
-          System.err.println(getName()+" - getInterfaces: "+result);
+          System.err.println(getName()+" - getInterfaces - result: "+result);
       }
     return interfaces;
   }
